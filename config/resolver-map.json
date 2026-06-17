@@ -1,0 +1,28 @@
+{
+  "version": "1.0.0",
+  "resolvers": {
+    "brand": {
+      "type": "static",
+      "target": "brand_ids",
+      "cache_ttl_seconds": 2592000,
+      "map": {
+        "nike": 42,
+        "adidas": 43,
+        "apple": 7,
+        "samsung": 8,
+        "sony": 9
+      }
+    },
+    "category": {
+      "type": "static",
+      "target": "category_ids",
+      "cache_ttl_seconds": 2592000,
+      "map": {
+        "running": 7,
+        "footwear": 12,
+        "electronics": 3,
+        "clothing": 5
+      }
+    }
+  }
+}

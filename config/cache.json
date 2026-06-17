@@ -1,0 +1,34 @@
+{
+  "version": "1.0.0",
+  "cache": {
+    "enabled": true,
+    "backend": "memory",
+    "namespace": "search-intent",
+    "project_version": {
+      "strategy": "static",
+      "value": "v1"
+    },
+    "keys": {
+      "search_object": {
+        "pattern": "{namespace}:{project_version}:{locale}:{query_hash}:search_object",
+        "ttl_seconds": 86400
+      },
+      "entities": {
+        "pattern": "{namespace}:{project_version}:{locale}:{query_hash}:entities",
+        "ttl_seconds": 604800
+      },
+      "resolved_entity": {
+        "pattern": "{namespace}:{project_version}:{entity_key}:{value_hash}:resolved",
+        "ttl_seconds": 2592000
+      },
+      "api_request": {
+        "pattern": "{namespace}:{project_version}:{locale}:{query_hash}:api_request",
+        "ttl_seconds": 86400
+      },
+      "api_response": {
+        "pattern": "{namespace}:{project_version}:{locale}:{query_hash}:api_response",
+        "ttl_seconds": 300
+      }
+    }
+  }
+}

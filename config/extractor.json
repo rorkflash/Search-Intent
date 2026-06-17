@@ -1,0 +1,39 @@
+{
+  "version": "1.0.0",
+  "extractor": {
+    "provider": "regex",
+    "model": "fastino/gliner2-base-v1",
+    "mode": "combined_schema",
+    "thresholds": {
+      "entity": 0.35,
+      "classification": 0.45
+    }
+  },
+  "entities": {
+    "product": {
+      "label": "product",
+      "description": "Product name or product type",
+      "examples": ["running shoes", "shoes", "laptop", "winter jacket", "jacket", "phone"]
+    },
+    "brand": {
+      "label": "brand",
+      "description": "Product brand or manufacturer",
+      "examples": ["Nike", "Adidas", "Apple", "Samsung", "Sony"]
+    },
+    "color": {
+      "label": "color",
+      "description": "Product color",
+      "examples": ["red", "black", "white", "blue", "green"]
+    },
+    "category": {
+      "label": "category",
+      "description": "Product category",
+      "examples": ["running", "electronics", "clothing", "footwear"]
+    },
+    "price": {
+      "label": "price",
+      "description": "Price, price limit, or price range",
+      "examples": ["under $100", "between 50 and 200"]
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "name": "example-shop",
+  "display_name": "Example Shop",
+  "version": "1.0.0",
+  "default_locale": "en",
+  "supported_locales": ["en"]
+}

@@ -1,0 +1,20 @@
+{
+  "version": "1.0.0",
+  "objects": {
+    "product": {
+      "aliases": ["product", "item"],
+      "entities": ["product", "brand", "color", "price", "category"],
+      "searchable_fields": ["title", "description", "sku"]
+    },
+    "brand": {
+      "aliases": ["brand", "manufacturer"],
+      "entities": ["brand"],
+      "searchable_fields": ["name"]
+    },
+    "category": {
+      "aliases": ["category", "department"],
+      "entities": ["category"],
+      "searchable_fields": ["name"]
+    }
+  }
+}

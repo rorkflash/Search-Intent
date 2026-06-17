@@ -1,0 +1,37 @@
+{
+  "version": "1.0.0",
+  "api": {
+    "base_url_from_env": "TARGET_API_BASE_URL",
+    "mode": "generate_only",
+    "auth": {
+      "type": "bearer_token",
+      "token_from_env": "TARGET_API_TOKEN"
+    }
+  },
+  "endpoints": {
+    "search": {
+      "method": "POST",
+      "path": "/api/search",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "objects": "{{ search_object.objects }}",
+        "query": "{{ search_object.query }}",
+        "filters": "{{ search_object.filters }}",
+        "sort": "{{ search_object.sort }}",
+        "pagination": "{{ search_object.pagination }}"
+      },
+      "options": {
+        "remove_null_values": true,
+        "remove_empty_arrays": true,
+        "remove_empty_objects": true
+      }
+    }
+  },
+  "intent_endpoint_map": {
+    "global_search": "search",
+    "search_products": "search",
+    "search_brands": "search"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "version": "1.0.0",
+  "intents": {
+    "search_products": {
+      "description": "User wants to search products.",
+      "keywords": ["product", "products", "buy", "find", "show me", "shoes", "laptop", "jacket"],
+      "default_objects": ["product"]
+    },
+    "search_brands": {
+      "description": "User wants to search or filter by brands.",
+      "keywords": ["brand", "brands"],
+      "default_objects": ["brand", "product"]
+    },
+    "global_search": {
+      "description": "General search across all searchable objects.",
+      "keywords": [],
+      "default_objects": ["product", "brand", "category"]
+    }
+  }
+}

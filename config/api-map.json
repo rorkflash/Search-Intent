@@ -1,0 +1,26 @@
+{
+  "version": "1.0.0",
+  "api": {
+    "base_url": "https://dummyjson.com",
+    "mode": "generate_and_execute"
+  },
+  "endpoints": {
+    "search": {
+      "method": "GET",
+      "path": "/products/search",
+      "headers": {
+        "Accept": "application/json"
+      },
+      "query": {
+        "q": "{{ search_object.query }}",
+        "limit": "{{ search_object.pagination.limit }}",
+        "skip": "{{ search_object.pagination.offset }}"
+      }
+    }
+  },
+  "intent_endpoint_map": {
+    "global_search": "search",
+    "search_products": "search",
+    "search_brands": "search"
+  }
+}

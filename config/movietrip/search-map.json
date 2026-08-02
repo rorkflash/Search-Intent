@@ -1,0 +1,15 @@
+{
+  "version": "1.0.0",
+  "objects": {
+    "place": {
+      "aliases": ["place", "location", "spot"],
+      "entities": ["city", "location_type", "movie_title"],
+      "searchable_fields": ["name", "city", "description"]
+    },
+    "movie": {
+      "aliases": ["movie", "film", "show"],
+      "entities": ["movie_title", "genre"],
+      "searchable_fields": ["title", "genre"]
+    }
+  }
+}

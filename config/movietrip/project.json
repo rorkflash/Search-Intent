@@ -1,0 +1,7 @@
+{
+  "name": "movietrip",
+  "display_name": "MovieTrip",
+  "version": "1.0.0",
+  "default_locale": "en",
+  "supported_locales": ["en"]
+}

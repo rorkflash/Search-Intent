@@ -1,31 +1,20 @@
 {
   "version": "1.0.0",
   "api": {
-    "base_url_from_env": "TARGET_API_BASE_URL",
-    "mode": "generate_only",
-    "auth": {
-      "type": "bearer_token",
-      "token_from_env": "TARGET_API_TOKEN"
-    }
+    "base_url": "https://dummyjson.com",
+    "mode": "generate_and_execute"
   },
   "endpoints": {
     "search": {
-      "method": "POST",
-      "path": "/api/search",
+      "method": "GET",
+      "path": "/products/search",
       "headers": {
-        "Content-Type": "application/json"
+        "Accept": "application/json"
       },
-      "body": {
-        "objects": "{{ search_object.objects }}",
-        "query": "{{ search_object.query }}",
-        "filters": "{{ search_object.filters }}",
-        "sort": "{{ search_object.sort }}",
-        "pagination": "{{ search_object.pagination }}"
-      },
-      "options": {
-        "remove_null_values": true,
-        "remove_empty_arrays": true,
-        "remove_empty_objects": true
+      "query": {
+        "q": "{{ search_object.query }}",
+        "limit": "{{ search_object.pagination.limit }}",
+        "skip": "{{ search_object.pagination.offset }}"
       }
     }
   },

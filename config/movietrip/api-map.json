@@ -1,0 +1,17 @@
+{
+  "version": "1.0.0",
+  "api": {
+    "mode": "generate_only"
+  },
+  "endpoints": {
+    "search": {
+      "method": "POST",
+      "path": "/unused",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {}
+    }
+  },
+  "intent_endpoint_map": {}
+}

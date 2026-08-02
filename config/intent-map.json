@@ -3,7 +3,21 @@
   "intents": {
     "search_products": {
       "description": "User wants to search products.",
-      "keywords": ["product", "products", "buy", "find", "show me", "shoes", "laptop", "jacket"],
+      "keywords": [
+        "product",
+        "products",
+        "buy",
+        "find",
+        "show me",
+        "shoes",
+        "laptop",
+        "laptops",
+        "phone",
+        "smartphone",
+        "headphones",
+        "jacket",
+        "watch"
+      ],
       "default_objects": ["product"]
     },
     "search_brands": {

@@ -13,7 +13,17 @@
     "product": {
       "label": "product",
       "description": "Product name or product type",
-      "examples": ["running shoes", "shoes", "laptop", "winter jacket", "jacket", "phone"]
+      "examples": [
+        "running shoes",
+        "shoes",
+        "laptop",
+        "laptops",
+        "phone",
+        "smartphone",
+        "headphones",
+        "watch",
+        "jacket"
+      ]
     },
     "brand": {
       "label": "brand",
@@ -23,12 +33,22 @@
     "color": {
       "label": "color",
       "description": "Product color",
-      "examples": ["red", "black", "white", "blue", "green"]
+      "examples": ["red", "black", "white", "blue", "green", "silver"]
     },
     "category": {
       "label": "category",
       "description": "Product category",
-      "examples": ["running", "electronics", "clothing", "footwear"]
+      "examples": [
+        "electronics",
+        "smartphones",
+        "laptops",
+        "furniture",
+        "beauty",
+        "clothing",
+        "footwear",
+        "running",
+        "groceries"
+      ]
     },
     "price": {
       "label": "price",

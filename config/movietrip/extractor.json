@@ -1,0 +1,67 @@
+{
+  "version": "1.0.0",
+  "extractor": {
+    "provider": "regex",
+    "mode": "combined_schema",
+    "thresholds": {
+      "entity": 0.35,
+      "classification": 0.45
+    }
+  },
+  "entities": {
+    "movie_title": {
+      "label": "movie_title",
+      "description": "Movie or TV show title",
+      "examples": [
+        "Harry Potter",
+        "Game of Thrones",
+        "Lord of the Rings",
+        "James Bond",
+        "Star Wars",
+        "Inception",
+        "The Hobbit",
+        "Notting Hill"
+      ]
+    },
+    "city": {
+      "label": "city",
+      "description": "City or town name",
+      "examples": [
+        "London",
+        "Paris",
+        "New York",
+        "Dublin",
+        "Reykjavik",
+        "Edinburgh",
+        "Rome",
+        "Dubrovnik"
+      ]
+    },
+    "location_type": {
+      "label": "location_type",
+      "description": "Type of filming location",
+      "examples": [
+        "castle",
+        "beach",
+        "bridge",
+        "palace",
+        "cafe",
+        "street",
+        "station",
+        "cathedral"
+      ]
+    },
+    "genre": {
+      "label": "genre",
+      "description": "Movie or show genre",
+      "examples": [
+        "fantasy",
+        "action",
+        "romance",
+        "thriller",
+        "sci-fi",
+        "drama"
+      ]
+    }
+  }
+}

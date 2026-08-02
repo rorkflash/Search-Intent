@@ -15,13 +15,18 @@
     },
     "category": {
       "type": "static",
-      "target": "category_ids",
+      "target": "category_slugs",
       "cache_ttl_seconds": 2592000,
       "map": {
-        "running": 7,
-        "footwear": 12,
-        "electronics": 3,
-        "clothing": 5
+        "electronics": "smartphones",
+        "smartphones": "smartphones",
+        "laptops": "laptops",
+        "furniture": "furniture",
+        "beauty": "beauty",
+        "clothing": "tops",
+        "footwear": "mens-shoes",
+        "running": "sports-accessories",
+        "groceries": "groceries"
       }
     }
   }

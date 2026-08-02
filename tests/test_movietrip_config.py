@@ -34,7 +34,7 @@ def test_parse_movie_places_query(movietrip_client: TestClient) -> None:
     assert resp.status_code == 200
     body = resp.json()
     assert body["intent"] == "search_places"
-    assert body["objects"] == ["place"]
+    assert body["objects"] == ["places"]
     assert body["entities"]["movie_title"] == ["Harry Potter"]
     assert body["entities"]["city"] == ["London"]
 
@@ -46,20 +46,147 @@ def test_parse_movie_query(movietrip_client: TestClient) -> None:
     assert resp.status_code == 200
     body = resp.json()
     assert body["intent"] == "search_movies"
-    assert body["objects"] == ["movie"]
+    assert body["objects"] == ["movies"]
     assert body["entities"]["genre"] == ["fantasy"]
     assert body["entities"]["movie_title"] == ["Lord of the Rings"]
 
 
 def test_parse_location_type_and_city(movietrip_client: TestClient) -> None:
     resp = movietrip_client.post(
-        "/v1/parse", json={"query": "castle scenes filmed in Edinburgh"}
+        "/v1/parse", json={"query": "museum scenes filmed in Edinburgh"}
     )
     assert resp.status_code == 200
     body = resp.json()
     assert body["intent"] == "search_places"
-    assert body["entities"]["location_type"] == ["castle"]
+    assert body["entities"]["location_type"] == ["museum"]
     assert body["entities"]["city"] == ["Edinburgh"]
+
+
+def test_parse_ignores_ambiguous_location_type_without_context(
+    movietrip_client: TestClient,
+) -> None:
+    resp = movietrip_client.post(
+        "/v1/parse", json={"query": "James Bond and the Bank of England heist"}
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "location_type" not in body["entities"]
+
+
+def test_parse_matches_ambiguous_location_type_with_context(
+    movietrip_client: TestClient,
+) -> None:
+    resp = movietrip_client.post(
+        "/v1/parse", json={"query": "James Bond bank location in Rome"}
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["entities"]["location_type"] == ["bank"]
+    assert body["entities"]["city"] == ["Rome"]
+
+
+def test_parse_ignores_ambiguous_genre_without_context(
+    movietrip_client: TestClient,
+) -> None:
+    resp = movietrip_client.post(
+        "/v1/parse", json={"query": "War and Peace is a classic novel"}
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "genre" not in body["entities"]
+
+
+def test_parse_matches_ambiguous_genre_with_context(
+    movietrip_client: TestClient,
+) -> None:
+    resp = movietrip_client.post(
+        "/v1/parse", json={"query": "western movies filmed in Rome"}
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["entities"]["genre"] == ["western"]
+    assert body["entities"]["city"] == ["Rome"]
+
+
+def test_parse_country_entity(movietrip_client: TestClient) -> None:
+    resp = movietrip_client.post(
+        "/v1/parse", json={"query": "movies filmed in France"}
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["intent"] == "search_movies"
+    assert body["entities"]["country"] == ["France"]
+
+
+def test_parse_ignores_ambiguous_country_without_context(
+    movietrip_client: TestClient,
+) -> None:
+    resp = movietrip_client.post(
+        "/v1/parse", json={"query": "I bought a china plate yesterday"}
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "country" not in body["entities"]
+
+
+def test_parse_matches_ambiguous_country_with_context(
+    movietrip_client: TestClient,
+) -> None:
+    resp = movietrip_client.post(
+        "/v1/parse", json={"query": "planning a trip to China this fall"}
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["entities"]["country"] == ["China"]
+
+
+def test_parse_ignores_ambiguous_city_without_context(
+    movietrip_client: TestClient,
+) -> None:
+    resp = movietrip_client.post(
+        "/v1/parse", json={"query": "the weather is really nice today"}
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "city" not in body["entities"]
+
+
+def test_parse_matches_ambiguous_city_with_context(
+    movietrip_client: TestClient,
+) -> None:
+    resp = movietrip_client.post(
+        "/v1/parse", json={"query": "planning a trip to Nice next month"}
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["entities"]["city"] == ["Nice"]
+
+
+def test_generate_resolves_city_to_single_id(movietrip_client: TestClient) -> None:
+    resp = movietrip_client.post("/v1/generate", json={"query": "places in Paris"})
+    assert resp.status_code == 200
+    resolved = resp.json()["search_object"]["resolved"]
+    assert resolved["city_ids"] == [359]
+
+
+def test_generate_resolves_ambiguous_city_to_multiple_ids(
+    movietrip_client: TestClient,
+) -> None:
+    # "Cambridge" exists as a real city in both the US and the UK; the
+    # resolver maps it to both ids rather than guessing one.
+    resp = movietrip_client.post("/v1/generate", json={"query": "places in Cambridge"})
+    assert resp.status_code == 200
+    resolved = resp.json()["search_object"]["resolved"]
+    assert resolved["city_ids"] == [632, 691]
+
+
+def test_generate_resolves_country_to_id(movietrip_client: TestClient) -> None:
+    resp = movietrip_client.post(
+        "/v1/generate", json={"query": "movies filmed in France"}
+    )
+    assert resp.status_code == 200
+    resolved = resp.json()["search_object"]["resolved"]
+    assert resolved["country_ids"] == [86]
 
 
 def test_parse_falls_back_to_global_search(movietrip_client: TestClient) -> None:

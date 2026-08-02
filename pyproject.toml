@@ -16,6 +16,9 @@ dependencies = [
     "jinja2>=3.1",
 ]
 
+[project.scripts]
+search-intent = "search_intent.__main__:main"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",

@@ -6,12 +6,33 @@
   "endpoints": {
     "search": {
       "method": "POST",
-      "path": "/unused",
+      "path": "/v1/search",
       "headers": {
         "Content-Type": "application/json"
       },
-      "body": {}
+      "body": {
+        "q": "{{ search_object.filters.movie_title.first }}",
+        "types": "{{ search_object.objects }}",
+        "lang": "{{ search_object.locale }}",
+        "limit": "{{ search_object.pagination.limit }}",
+        "filters": {
+          "country_id": "{{ search_object.filters.country_ids.first }}",
+          "city_id": "{{ search_object.filters.city_ids.first }}",
+          "genre_id": "{{ search_object.filters.genre_ids.first }}",
+          "genres": "{{ search_object.filters.genre_ids }}",
+          "place_type": "{{ search_object.filters.place_type_ids.first }}"
+        }
+      },
+      "options": {
+        "remove_null_values": true,
+        "remove_empty_arrays": true,
+        "remove_empty_objects": true
+      }
     }
   },
-  "intent_endpoint_map": {}
+  "intent_endpoint_map": {
+    "search_places": "search",
+    "search_movies": "search",
+    "global_search": "search"
+  }
 }

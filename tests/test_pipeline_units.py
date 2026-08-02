@@ -37,6 +37,37 @@ def test_regex_extractor_finds_entities():
     assert result.entities["price"] == ["under $100"]
 
 
+AMBIGUOUS_EXTRACTOR_CONFIG = {
+    "extractor": {"provider": "regex", "thresholds": {"entity": 0.35}},
+    "entities": {
+        "location_type": {
+            "examples": ["bank", "museum"],
+            "ambiguous_terms": ["bank"],
+            "context_words": ["location", "place"],
+            "context_window": 2,
+        },
+    },
+}
+
+
+def test_regex_extractor_skips_ambiguous_term_without_context():
+    extractor = build_extractor(AMBIGUOUS_EXTRACTOR_CONFIG)
+    result = extractor.extract("bank of America movie")
+    assert "location_type" not in result.entities
+
+
+def test_regex_extractor_matches_ambiguous_term_with_nearby_context():
+    extractor = build_extractor(AMBIGUOUS_EXTRACTOR_CONFIG)
+    result = extractor.extract("find a bank location nearby")
+    assert result.entities["location_type"] == ["bank"]
+
+
+def test_regex_extractor_still_matches_unambiguous_term_freely():
+    extractor = build_extractor(AMBIGUOUS_EXTRACTOR_CONFIG)
+    result = extractor.extract("museum scenes from Inception")
+    assert result.entities["location_type"] == ["museum"]
+
+
 def test_intent_detector_keyword_match():
     detector = IntentDetector(
         {

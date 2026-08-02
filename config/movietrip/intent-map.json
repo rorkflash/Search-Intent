@@ -4,17 +4,17 @@
     "search_places": {
       "description": "User wants to find real-world filming locations for movies/shows.",
       "keywords": ["places", "place", "locations", "location", "filming", "spots", "spot", "where", "scenes", "scene", "shot"],
-      "default_objects": ["place"]
+      "default_objects": ["places"]
     },
     "search_movies": {
       "description": "User wants to find movies or shows, e.g. by genre or title.",
       "keywords": ["movie", "movies", "film", "films", "show", "shows"],
-      "default_objects": ["movie"]
+      "default_objects": ["movies"]
     },
     "global_search": {
       "description": "General search across places and movies.",
       "keywords": [],
-      "default_objects": ["place", "movie"]
+      "default_objects": ["places", "movies"]
     }
   }
 }

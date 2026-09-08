@@ -1,7 +1,8 @@
 {
   "version": "1.0.0",
   "api": {
-    "mode": "generate_only"
+    "base_url_from_env": "TARGET_API_BASE_URL",
+    "mode": "generate_and_execute"
   },
   "endpoints": {
     "search": {
@@ -11,7 +12,7 @@
         "Content-Type": "application/json"
       },
       "body": {
-        "q": "{{ search_object.filters.movie_title.first }}",
+        "q": "{{ search_object.filters.q }}",
         "types": "{{ search_object.objects }}",
         "lang": "{{ search_object.locale }}",
         "limit": "{{ search_object.pagination.limit }}",
@@ -20,7 +21,9 @@
           "city_id": "{{ search_object.filters.city_ids.first }}",
           "genre_id": "{{ search_object.filters.genre_ids.first }}",
           "genres": "{{ search_object.filters.genre_ids }}",
-          "place_type": "{{ search_object.filters.place_type_ids.first }}"
+          "place_type": "{{ search_object.filters.place_type_ids.first }}",
+          "year_from": "{{ search_object.filters.year_from }}",
+          "year_to": "{{ search_object.filters.year_to }}"
         }
       },
       "options": {
@@ -32,6 +35,8 @@
   },
   "intent_endpoint_map": {
     "search_places": "search",
+    "search_scenes": "search",
+    "search_trips": "search",
     "search_movies": "search",
     "global_search": "search"
   }

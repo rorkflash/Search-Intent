@@ -14,7 +14,15 @@ dependencies = [
     "pyjwt[crypto]>=2.8",
     "jsonpath-ng>=1.6",
     "jinja2>=3.1",
-    "gliner2>=1.3.2",
+    # <2.0 pinned deliberately: 2.0.0 dropped the peft/transformers/torch
+    # dependency chain entirely (a real breaking change for
+    # gliner2_extractor.py's GLiNER2.from_pretrained() call), which an
+    # unconstrained lock refresh would otherwise pick up silently.
+    "gliner2>=1.3.2,<2.0.0",
+    # Declared directly only so [tool.uv.sources] below can pin it: uv applies
+    # sources to direct dependencies only, and torch would otherwise arrive
+    # transitively (gliner2 -> peft) straight from PyPI with the CUDA build.
+    "torch>=2.0",
 ]
 
 [project.scripts]
@@ -34,6 +42,18 @@ packages = ["search_intent"]
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+# gliner2 -> peft pulls torch in. Left to default PyPI resolution it grabs the
+# CUDA-enabled build, which drags in the full NVIDIA stack (cuda-toolkit,
+# nvidia-cudnn, nvidia-nccl, ...) — multiple GB of GPU libraries this CPU-only
+# service never uses. Pin it to PyTorch's CPU-only index instead.
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [tool.ruff]
 target-version = "py312"

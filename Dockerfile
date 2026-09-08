@@ -17,7 +17,17 @@ COPY plugins ./plugins
 
 ENV PATH="/app/.venv/bin:$PATH" \
     SEARCH_INTENT_HOST=0.0.0.0 \
-    SEARCH_INTENT_PORT=8080
+    SEARCH_INTENT_PORT=8080 \
+    MODEL_CACHE_DIR=/app/models \
+    HF_HOME=/app/models
+
+# Bake the GLiNER2 weights into the image (see scripts/prefetch_models.py for
+# why a runtime download is not an option here).
+COPY scripts/prefetch_models.py ./scripts/
+RUN python scripts/prefetch_models.py
+
+# Weights are on disk now; never let a startup path reach out to the Hub.
+ENV HF_HUB_OFFLINE=1
 
 EXPOSE 8080
 

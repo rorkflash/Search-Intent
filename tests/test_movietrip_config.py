@@ -53,11 +53,24 @@ def test_parse_movie_query(movietrip_client: TestClient) -> None:
 
 def test_parse_location_type_and_city(movietrip_client: TestClient) -> None:
     resp = movietrip_client.post(
-        "/v1/parse", json={"query": "museum scenes filmed in Edinburgh"}
+        "/v1/parse", json={"query": "museum places in Edinburgh"}
     )
     assert resp.status_code == 200
     body = resp.json()
     assert body["intent"] == "search_places"
+    assert body["objects"] == ["places"]
+    assert body["entities"]["location_type"] == ["museum"]
+    assert body["entities"]["city"] == ["Edinburgh"]
+
+
+def test_parse_scenes_intent(movietrip_client: TestClient) -> None:
+    resp = movietrip_client.post(
+        "/v1/parse", json={"query": "museum scenes filmed in Edinburgh"}
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["intent"] == "search_scenes"
+    assert body["objects"] == ["scenes"]
     assert body["entities"]["location_type"] == ["museum"]
     assert body["entities"]["city"] == ["Edinburgh"]
 
@@ -187,6 +200,59 @@ def test_generate_resolves_country_to_id(movietrip_client: TestClient) -> None:
     assert resp.status_code == 200
     resolved = resp.json()["search_object"]["resolved"]
     assert resolved["country_ids"] == [86]
+
+
+def test_generate_quoted_unknown_title_becomes_q(movietrip_client: TestClient) -> None:
+    resp = movietrip_client.post(
+        "/v1/generate",
+        json={"query": "the scenes of 'Inferno' movie", "limit": 1},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["intent"] == "search_scenes"
+    assert body["search_object"]["entities"]["movie_title"] == ["Inferno"]
+    assert body["api_request"]["body"] == {
+        "q": "Inferno",
+        "types": ["scenes"],
+        "lang": "en",
+        "limit": 1,
+    }
+
+
+def test_generate_unquoted_unknown_title_becomes_q(
+    movietrip_client: TestClient,
+) -> None:
+    resp = movietrip_client.post(
+        "/v1/generate",
+        json={"query": "the scenes of Inferno movie", "limit": 1},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["intent"] == "search_scenes"
+    assert body["search_object"]["entities"]["movie_title"] == ["Inferno"]
+    assert body["api_request"]["body"]["q"] == "Inferno"
+    assert body["api_request"]["body"]["types"] == ["scenes"]
+
+
+def test_generate_year_range_filters(movietrip_client: TestClient) -> None:
+    resp = movietrip_client.post(
+        "/v1/generate",
+        json={
+            "query": "I need all movies started from 2012 to 2016",
+            "limit": 10,
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["intent"] == "search_movies"
+    assert body["search_object"]["entities"]["year"] == ["from 2012 to 2016"]
+    assert "movie_title" not in body["search_object"]["entities"]
+    assert body["api_request"]["body"] == {
+        "types": ["movies"],
+        "lang": "en",
+        "limit": 10,
+        "filters": {"year_from": 2012, "year_to": 2016},
+    }
 
 
 def test_parse_falls_back_to_global_search(movietrip_client: TestClient) -> None:

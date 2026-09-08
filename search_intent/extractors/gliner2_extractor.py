@@ -30,15 +30,19 @@ class Gliner2Extractor(Extractor):
         self._labels = list(self.entities.keys())
 
     def extract(self, query: str, locale: str = "en") -> ExtractionResult:  # pragma: no cover
-        predictions = self._model.predict_entities(
-            query, self._labels, threshold=self.entity_threshold
+        result = self._model.extract_entities(
+            query,
+            self._labels,
+            threshold=self.entity_threshold,
+            include_confidence=True,
         )
+        raw_entities = result.get("entities", {})
         entities: dict[str, list[str]] = {}
         scores: list[float] = []
-        for pred in predictions:
-            label = pred["label"]
-            entities.setdefault(label, []).append(pred["text"])
-            scores.append(float(pred.get("score", 0.0)))
+        for label, items in raw_entities.items():
+            for item in items:
+                entities.setdefault(label, []).append(item["text"])
+                scores.append(float(item.get("confidence", 0.0)))
 
         confidence = sum(scores) / len(scores) if scores else 0.0
         return ExtractionResult(entities=entities, confidence=confidence)

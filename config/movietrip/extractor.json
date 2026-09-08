@@ -1,7 +1,8 @@
 {
   "version": "1.0.0",
   "extractor": {
-    "provider": "regex",
+    "provider": "gliner2",
+    "model": "fastino/gliner2-base-v1",
     "mode": "combined_schema",
     "thresholds": {
       "entity": 0.35,
@@ -11,7 +12,25 @@
   "entities": {
     "movie_title": {
       "label": "movie_title",
-      "description": "Movie or TV show title",
+      "description": "Movie or TV show title. Do NOT list the full catalog in examples. extract_quoted handles 'Title'/\"Title\"; extract_residual takes leftover text after other entities + search keywords (so unquoted Inferno works). Optional examples only boost a few common titles.",
+      "extract_quoted": true,
+      "extract_residual": true,
+      "residual_cues": [
+        "movie", "movies", "film", "films", "show", "shows",
+        "scene", "scenes", "shot", "shots", "title"
+      ],
+      "residual_stopwords": [
+        "movie", "movies", "film", "films", "show", "shows",
+        "scene", "scenes", "shot", "shots", "filming", "filmed",
+        "place", "places", "location", "locations", "spot", "spots",
+        "where", "like", "from", "near", "around", "set", "visit",
+        "trip", "travel", "vacation", "abroad", "planning", "find",
+        "search", "with", "and", "or", "based", "about",
+        "need", "all", "started", "start", "starting", "between",
+        "since", "until", "after", "before", "year", "years",
+        "released", "release", "during", "i", "me", "my", "we",
+        "you", "please", "want", "get", "looking", "look"
+      ],
       "examples": [
         "Harry Potter",
         "Game of Thrones",
@@ -558,6 +577,10 @@
         "Mystery",
         "Romance"
       ]
+    },
+    "year": {
+      "label": "year",
+      "description": "Release year or year range (e.g. from 2012 to 2016, since 2010, in 1999). Parsed into year_from/year_to filters."
     }
   }
 }

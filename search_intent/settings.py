@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     port: int = Field(8080, alias="SEARCH_INTENT_PORT")
     config_dir: str = Field("./config", alias="SEARCH_INTENT_CONFIG_DIR")
     plugin_dir: str = Field("./plugins", alias="SEARCH_INTENT_PLUGIN_DIR")
+    model_cache_dir: str = Field("./models", alias="MODEL_CACHE_DIR")
 
     # Inbound JWT
     jwt_secret: str | None = Field(None, alias="SEARCH_INTENT_JWT_SECRET")

@@ -17,8 +17,9 @@ from ..resolvers import Resolver
 from .intent_detector import IntentResult
 
 _NUM_RE = re.compile(r"\d+(?:[.,]\d+)?")
-_MIN_WORDS = ("over", "above", "more than", "min", "from", "starting")
-_MAX_WORDS = ("under", "below", "less than", "max", "up to", "cheaper")
+_YEAR_NUM_RE = re.compile(r"\b(18\d{2}|19\d{2}|20\d{2})\b")
+_MIN_WORDS = ("over", "above", "more than", "min", "from", "starting", "since", "after")
+_MAX_WORDS = ("under", "below", "less than", "max", "up to", "cheaper", "until", "before")
 
 
 def parse_price(expressions: list[str]) -> dict[str, float]:
@@ -37,6 +38,27 @@ def parse_price(expressions: list[str]) -> dict[str, float]:
             result["max"] = nums[0]
         else:
             result["max"] = nums[0]
+    return result
+
+
+def parse_year(expressions: list[str]) -> dict[str, int]:
+    """Turn year phrases like 'from 2012 to 2016' into year_from/year_to."""
+    result: dict[str, int] = {}
+    for expr in expressions:
+        years = [int(y) for y in _YEAR_NUM_RE.findall(expr)]
+        if not years:
+            continue
+        lowered = expr.lower()
+        if len(years) >= 2:
+            result["year_from"], result["year_to"] = min(years[:2]), max(years[:2])
+        elif any(w in lowered for w in _MIN_WORDS):
+            result["year_from"] = years[0]
+        elif any(w in lowered for w in _MAX_WORDS):
+            result["year_to"] = years[0]
+        else:
+            # "in 2012" / bare year → exact year on both bounds
+            result["year_from"] = years[0]
+            result["year_to"] = years[0]
     return result
 
 
@@ -73,6 +95,12 @@ class SearchObjectBuilder:
                     filters["price"] = price
                 continue
 
+            if label == "year":
+                year = parse_year(values)
+                if year:
+                    filters.update(year)
+                continue
+
             resolver = self._resolvers.get(label)
             if resolver is not None:
                 ids = await self._resolve_all(resolver, values)
@@ -81,6 +109,14 @@ class SearchObjectBuilder:
                     filters[resolver.target] = ids
             else:
                 filters[label] = values
+
+        # Prefer extracted title for free-text q. Fall back to the raw query
+        # only when nothing structured was extracted (so year/city/genre-only
+        # queries do not pollute q with leftover English filler).
+        if "movie_title" in filters and filters["movie_title"]:
+            filters["q"] = filters["movie_title"][0]
+        elif not filters:
+            filters["q"] = query
 
         return SearchObject(
             query=query,

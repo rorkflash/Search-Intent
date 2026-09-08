@@ -7,8 +7,10 @@ inbound auth. Run with:  uvicorn search_intent.main:app
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 
 from .api import routes_generate, routes_health, routes_parse, routes_search
@@ -18,12 +20,20 @@ from .config import load_config, validate_config
 from .core import Pipeline
 from .settings import get_settings
 
+# pydantic-settings reads `.env` into the Settings model, but ApiMapper's
+# `*_from_env` lookups (base_url/token/key, http resolvers) read os.environ
+# directly — load `.env` into the real process environment too, so local dev
+# behaves the same as Docker Compose (which injects real env vars). A no-op
+# in containers with no `.env` file, and never overrides an already-set var.
+load_dotenv()
+
 logger = logging.getLogger("search_intent")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
+    os.environ.setdefault("HF_HOME", os.path.abspath(settings.model_cache_dir))
     config = load_config(settings.config_dir)
 
     warnings = validate_config(config)

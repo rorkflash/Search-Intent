@@ -2,14 +2,24 @@
   "version": "1.0.0",
   "objects": {
     "places": {
-      "aliases": ["place", "places", "location", "spot"],
-      "entities": ["city", "location_type", "movie_title"],
+      "aliases": ["place", "places", "location", "locations", "spot", "spots"],
+      "entities": ["city", "country", "location_type", "movie_title"],
       "searchable_fields": ["name", "city", "description"]
     },
     "movies": {
-      "aliases": ["movie", "movies", "film", "show"],
-      "entities": ["movie_title", "genre"],
+      "aliases": ["movie", "movies", "film", "films", "show", "shows"],
+      "entities": ["movie_title", "genre", "country", "year"],
       "searchable_fields": ["title", "genre"]
+    },
+    "scenes": {
+      "aliases": ["scene", "scenes", "shot", "shots"],
+      "entities": ["city", "country", "location_type", "movie_title", "genre", "year"],
+      "searchable_fields": ["brief", "movie_title", "place_name"]
+    },
+    "trips": {
+      "aliases": ["trip", "trips", "itinerary", "tour", "tours", "walk", "walking tour"],
+      "entities": ["city", "country", "movie_title"],
+      "searchable_fields": ["title", "description"]
     }
   }
 }

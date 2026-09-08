@@ -2,9 +2,19 @@
   "version": "1.0.0",
   "intents": {
     "search_places": {
-      "description": "User wants to find real-world filming locations for movies/shows.",
-      "keywords": ["places", "place", "locations", "location", "filming", "spots", "spot", "where", "scenes", "scene", "shot"],
+      "description": "User wants to find real-world filming locations / places.",
+      "keywords": ["places", "place", "locations", "location", "spots", "spot", "where"],
       "default_objects": ["places"]
+    },
+    "search_scenes": {
+      "description": "User wants to find movie scenes (specific filmed moments).",
+      "keywords": ["scenes", "scene", "shot", "shots", "filming"],
+      "default_objects": ["scenes"]
+    },
+    "search_trips": {
+      "description": "User wants a curated multi-stop trip / itinerary / tour, not a single scene, place, or movie.",
+      "keywords": ["trip", "trips", "itinerary", "tour", "tours", "walk", "walking tour"],
+      "default_objects": ["trips"]
     },
     "search_movies": {
       "description": "User wants to find movies or shows, e.g. by genre or title.",
@@ -12,9 +22,9 @@
       "default_objects": ["movies"]
     },
     "global_search": {
-      "description": "General search across places and movies.",
+      "description": "General search across places, scenes, movies, and trips.",
       "keywords": [],
-      "default_objects": ["places", "movies"]
+      "default_objects": ["places", "scenes", "movies", "trips"]
     }
   }
 }

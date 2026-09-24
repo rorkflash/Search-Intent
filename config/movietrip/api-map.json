@@ -23,7 +23,11 @@
           "genres": "{{ search_object.filters.genre_ids }}",
           "place_type": "{{ search_object.filters.place_type_ids.first }}",
           "year_from": "{{ search_object.filters.year_from }}",
-          "year_to": "{{ search_object.filters.year_to }}"
+          "year_to": "{{ search_object.filters.year_to }}",
+          "minLat": "{{ search_object.geo.bbox.min_lat }}",
+          "minLng": "{{ search_object.geo.bbox.min_lng }}",
+          "maxLat": "{{ search_object.geo.bbox.max_lat }}",
+          "maxLng": "{{ search_object.geo.bbox.max_lng }}"
         }
       },
       "options": {

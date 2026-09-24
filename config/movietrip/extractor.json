@@ -29,7 +29,9 @@
         "need", "all", "started", "start", "starting", "between",
         "since", "until", "after", "before", "year", "years",
         "released", "release", "during", "i", "me", "my", "we",
-        "you", "please", "want", "get", "looking", "look"
+        "you", "please", "want", "get", "looking", "look",
+        "nearby", "close", "here", "area", "walking", "distance",
+        "next", "by", "current", "position"
       ],
       "examples": [
         "Harry Potter",

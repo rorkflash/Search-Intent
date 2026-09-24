@@ -266,3 +266,69 @@ def test_parse_falls_back_to_global_search(movietrip_client: TestClient) -> None
 def test_parse_validation_rejects_empty_query(movietrip_client: TestClient) -> None:
     resp = movietrip_client.post("/v1/parse", json={"query": ""})
     assert resp.status_code == 422
+
+
+def test_generate_scopes_placeless_query_to_user_location(
+    movietrip_client: TestClient,
+) -> None:
+    # No city or country in the query, but the caller knows where the user is:
+    # the request is scoped to a box around them instead of the whole planet.
+    resp = movietrip_client.post(
+        "/v1/generate",
+        json={
+            "query": "cafe places near me",
+            "user_location": {"lat": 40.1792, "lng": 44.4991},
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+
+    geo = body["search_object"]["geo"]
+    assert geo["applied"] is True
+    assert geo["trigger"] == "explicit_cue"
+    # Snapped to ~1.1 km before it reaches the generated request.
+    assert (geo["lat"], geo["lng"]) == (40.18, 44.5)
+
+    filters = body["api_request"]["body"]["filters"]
+    assert filters["minLat"] == geo["bbox"]["min_lat"]
+    assert filters["maxLng"] == geo["bbox"]["max_lng"]
+
+
+def test_generate_reads_user_location_from_proxy_headers(
+    movietrip_client: TestClient,
+) -> None:
+    resp = movietrip_client.post(
+        "/v1/generate",
+        json={"query": "cafe places nearby"},
+        headers={"cf-iplatitude": "51.5074", "cf-iplongitude": "-0.1278"},
+    )
+    assert resp.status_code == 200
+    geo = resp.json()["search_object"]["geo"]
+    assert geo["source"] == "header"
+    assert (geo["lat"], geo["lng"]) == (51.51, -0.13)
+
+
+def test_generate_without_a_user_location_stays_global(
+    movietrip_client: TestClient,
+) -> None:
+    resp = movietrip_client.post("/v1/generate", json={"query": "cafe places nearby"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["search_object"]["geo"] is None
+    assert "minLat" not in body["api_request"]["body"].get("filters", {})
+
+
+def test_generate_ignores_user_location_when_the_query_names_a_city(
+    movietrip_client: TestClient,
+) -> None:
+    resp = movietrip_client.post(
+        "/v1/generate",
+        json={
+            "query": "places in Paris",
+            "user_location": {"lat": 40.1792, "lng": 44.4991},
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["search_object"]["geo"] is None
+    assert body["api_request"]["body"]["filters"] == {"city_id": 359}

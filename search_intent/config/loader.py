@@ -21,6 +21,7 @@ CONFIG_FILES: dict[str, bool] = {
     "api-map": True,
     "cache": False,
     "auth-inbound": False,
+    "geo": False,
 }
 
 
@@ -37,6 +38,7 @@ class ProjectConfig:
     resolver_map: dict[str, Any] = field(default_factory=dict)
     cache: dict[str, Any] = field(default_factory=dict)
     auth_inbound: dict[str, Any] = field(default_factory=dict)
+    geo: dict[str, Any] = field(default_factory=dict)
 
     @property
     def name(self) -> str:
@@ -81,4 +83,5 @@ def load_config(config_dir: str | Path) -> ProjectConfig:
         resolver_map=loaded["resolver-map"],
         cache=loaded["cache"],
         auth_inbound=loaded["auth-inbound"],
+        geo=loaded["geo"],
     )

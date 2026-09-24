@@ -191,6 +191,7 @@ Movie Location Search Intent service
 - Search object generation
 - API request generation
 - Static and HTTP entity resolvers
+- Near-me fallback for queries that name no place
 - Redis caching support
 - Optional API execution mode
 - Inbound JWT authentication
@@ -295,6 +296,7 @@ search-intent/
       normalizer.py
       intent_detector.py
       search_object_builder.py
+      geo.py
 
     extractors/
       base.py
@@ -393,6 +395,7 @@ config/
   resolver-map.json
   cache.json
   auth-inbound.json
+  geo.json
 ```
 
 Example configs can live in:
@@ -666,6 +669,116 @@ generate_and_execute
 
 ---
 
+## `geo.json`
+
+Optional. Anchors a query that names no place on the searcher's own position.
+
+Without it, "cafe places" or "walking tours" has no geographic anchor at all
+and the target API searches everything. With a position from the caller, the
+query is scoped to a bounding box around the user instead. A query that names
+its own city or country is never re-anchored — `"places in Paris"` stays a
+search of Paris no matter where the searcher is.
+
+```json
+{
+  "version": "1.0.0",
+  "geo": {
+    "enabled": true,
+    "radius_km": 50,
+    "cue_radius_km": 25,
+    "max_radius_km": 500,
+    "precision": 2,
+    "header_fallback": true,
+    "retry_without_geo_when_empty": true,
+    "blocking_filters": ["city_ids", "country_ids"],
+    "blocking_entities": ["city", "country"],
+    "cues": ["near me", "nearby", "around me", "close to me"],
+    "headers": {
+      "lat": ["x-user-lat", "cf-iplatitude"],
+      "lng": ["x-user-lng", "cf-iplongitude"]
+    }
+  }
+}
+```
+
+| Key | Meaning |
+| --- | --- |
+| `enabled` | Off by default; no `geo.json` means the feature does not exist. |
+| `radius_km` | Radius for a query that simply named no place. |
+| `cue_radius_km` | Radius when the query said "near me" out loud — someone asking that means walking distance, not the surrounding region. |
+| `max_radius_km` | Ceiling for a caller-supplied `radius_km`. |
+| `precision` | Decimal places the position is snapped to before use (2 ≈ 1.1 km). Keeps the exact position out of the generated request and makes one neighbourhood produce one box. |
+| `blocking_filters` | Filters that mean the query named a place (the city/country resolver targets). |
+| `blocking_entities` | Entity labels that mean the same, for projects whose place entities do not resolve to ids. |
+| `cues` | Phrases that ask for a nearby search explicitly. |
+| `headers` | Proxy headers to read a position from when the request body carries none. |
+| `header_fallback` | Set to `false` to accept a position only from the request body. |
+| `retry_without_geo_when_empty` | In `execute` modes, re-run a geo-scoped search globally when it found nothing (see below). |
+
+The position reaches the service either in the request body:
+
+```json
+{
+  "query": "cafe places",
+  "user_location": { "lat": 40.1792, "lng": 44.4991, "radius_km": 25, "source": "browser" }
+}
+```
+
+or, for callers that never touch the browser Geolocation API, from the
+configured headers (`X-User-Lat` / `X-User-Lng`, or Cloudflare's
+`CF-IPLatitude` / `CF-IPLongitude`). The body wins when both are present.
+
+When the fallback applies, the SearchObject gains a `geo` block:
+
+```json
+{
+  "geo": {
+    "applied": true,
+    "trigger": "no_location_entity",
+    "source": "browser",
+    "lat": 40.18,
+    "lng": 44.5,
+    "radius_km": 50,
+    "bbox": { "min_lat": 39.728, "min_lng": 43.913, "max_lat": 40.632, "max_lng": 45.085 }
+  }
+}
+```
+
+`trigger` is `explicit_cue` when the query itself asked for it, and
+`no_location_entity` when it simply named no place.
+
+The core writes no geo filter of its own: `api-map.json` decides which target
+API fields the box maps onto, exactly like every other field.
+
+```json
+"filters": {
+  "minLat": "{{ search_object.geo.bbox.min_lat }}",
+  "minLng": "{{ search_object.geo.bbox.min_lng }}",
+  "maxLat": "{{ search_object.geo.bbox.max_lat }}",
+  "maxLng": "{{ search_object.geo.bbox.max_lng }}"
+}
+```
+
+With no position, those placeholders resolve to null and the endpoint's
+`remove_null_values` option drops them, so nothing about the request changes.
+
+**Empty results.** A bounding box is a hard filter, so a geo-scoped search can
+find nothing that a global one would have found — someone in Yerevan searching
+"Harry Potter places" should still be shown the ones in London. With
+`retry_without_geo_when_empty` (default `true`) and an executing `api.mode`,
+a scoped search that comes back empty is re-run once without the box, and the
+response says so:
+
+```json
+"geo": { "applied": false, "fallback": "global", "trigger": "no_location_entity" }
+```
+
+**Caching.** The cached search object is the one *before* the position is
+applied, so the cache key stays `locale + query` and one user's position never
+reaches another user's cached result.
+
+---
+
 ## `auth-inbound.json`
 
 Inbound auth validates requests coming into Search Intent.
@@ -834,6 +947,17 @@ Request:
 {
   "query": "red Nike shoes under $100",
   "locale": "en"
+}
+```
+
+`user_location` is optional and only used when `geo.json` is enabled and the
+query names no place — see [`geo.json`](#geojson):
+
+```json
+{
+  "query": "cafe places near me",
+  "locale": "en",
+  "user_location": { "lat": 40.1792, "lng": 44.4991 }
 }
 ```
 

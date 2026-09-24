@@ -1,0 +1,34 @@
+{
+  "version": "1.0.0",
+  "geo": {
+    "enabled": true,
+    "radius_km": 50,
+    "cue_radius_km": 25,
+    "max_radius_km": 500,
+    "precision": 2,
+    "header_fallback": true,
+    "retry_without_geo_when_empty": true,
+    "note": "Anchors placeless queries on the searcher. radius_km matches mt-backend-data's DEFAULT_NEAR_RADIUS_KM so 'near you' means the same thing on /v1/search and on the /popular endpoints. precision 2 snaps the position to ~1.1km before it reaches the generated request.",
+    "blocking_filters": ["city_ids", "country_ids"],
+    "blocking_entities": ["city", "country"],
+    "cues": [
+      "near me",
+      "nearby",
+      "near by",
+      "around me",
+      "around here",
+      "close to me",
+      "close by",
+      "next to me",
+      "in my area",
+      "near my location",
+      "my location",
+      "where i am",
+      "walking distance"
+    ],
+    "headers": {
+      "lat": ["x-user-lat", "cf-iplatitude"],
+      "lng": ["x-user-lng", "cf-iplongitude"]
+    }
+  }
+}

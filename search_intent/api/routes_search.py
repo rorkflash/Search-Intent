@@ -5,11 +5,11 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
 from ..core import Pipeline
 from ..models import QueryRequest, SearchResponse
-from .deps import AuthDep, PipelineDep
+from .deps import AuthDep, PipelineDep, user_location_from
 
 router = APIRouter(prefix="/v1", tags=["search"])
 
@@ -17,12 +17,17 @@ router = APIRouter(prefix="/v1", tags=["search"])
 @router.post("/search", response_model=SearchResponse)
 async def search(
     body: QueryRequest,
+    http_request: Request,
     pipeline: Pipeline = PipelineDep,
     _claims: dict[str, Any] = AuthDep,
 ) -> SearchResponse:
     try:
         search_object, request, api_response, hit = await pipeline.search(
-            body.query, body.locale, body.limit, body.offset
+            body.query,
+            body.locale,
+            body.limit,
+            body.offset,
+            user_location_from(http_request, body),
         )
     except httpx.HTTPError as exc:
         raise HTTPException(status_code=502, detail=f"Target API error: {exc}") from exc

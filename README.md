@@ -223,7 +223,7 @@ Edit `.env`:
 SEARCH_INTENT_ENV=development
 SEARCH_INTENT_HOST=0.0.0.0
 SEARCH_INTENT_PORT=8080
-SEARCH_INTENT_CONFIG_DIR=./config
+SEARCH_INTENT_CONFIG_DIR=./config/default
 SEARCH_INTENT_PLUGIN_DIR=./plugins
 
 TARGET_API_BASE_URL=https://api.example.com
@@ -376,16 +376,20 @@ search-intent/
 
 Search Intent is configured with JSON files.
 
-The active runtime config lives in:
+Each config lives in its own folder under `config/` (a *collection*). The
+service loads one of them, picked by `SEARCH_INTENT_CONFIG_DIR`
+(default `./config/default`):
 
 ```text
 config/
+  default/      # example shop, targets DummyJSON
+  movietrip/    # MovieTrip parse profile
 ```
 
-Example:
+A collection folder holds:
 
 ```text
-config/
+config/default/
   project.json
   extractor.json
   search-map.json
@@ -409,6 +413,9 @@ You can copy one example into the active config directory:
 ```bash
 cp -r examples/ecommerce/config ./config
 ```
+
+To browse, edit, create and test collections in a browser, use the
+[sandbox](#sandbox).
 
 ---
 
@@ -851,7 +858,7 @@ Example `.env.example`:
 SEARCH_INTENT_ENV=development
 SEARCH_INTENT_HOST=0.0.0.0
 SEARCH_INTENT_PORT=8080
-SEARCH_INTENT_CONFIG_DIR=./config
+SEARCH_INTENT_CONFIG_DIR=./config/default
 SEARCH_INTENT_PLUGIN_DIR=./plugins
 
 # Inbound JWT
@@ -1051,6 +1058,33 @@ Response:
   "api_response": {}
 }
 ```
+
+---
+
+## Sandbox
+
+The sandbox is a local web app for working on collections. You can browse and
+edit their config files, create new ones (blank or copied from an existing
+collection), and send a query to any collection to see the JSON it returns.
+
+```bash
+uv run python -m sandbox
+```
+
+It opens `http://127.0.0.1:8090/`. Options: `--port`, `--host`,
+`--config-root` (default `./config`) and `--no-browser`.
+
+- Edits are written straight to `config/<collection>/*.json`, exactly as typed.
+  Review them with `git diff`.
+- After each save the collection is checked the way the service loads it, and
+  any error or warnings are shown under the editor.
+- The tester runs `parse`, `generate` or `search`, with caching off so a saved
+  edit shows up in the next run. For `generate` and `search` it also shows the
+  parse stage (intent and extracted entities) next to the output. `search`
+  calls the collection's target API for real.
+- Inbound auth is skipped and files are writable over HTTP, so the sandbox is
+  for local development only. It binds to localhost and is not part of the
+  Docker image.
 
 ---
 

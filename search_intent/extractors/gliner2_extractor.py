@@ -7,26 +7,36 @@ Install with: ``uv add gliner2`` (and a torch backend).
 
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import Any
 
 from .base import ExtractionResult, Extractor
 
 
+@lru_cache(maxsize=None)
+def _load_model(model_name: str) -> Any:
+    """Load each model once per process.
+
+    The weights are read-only at inference time, so pipelines built from
+    different configs (the sandbox holds one per collection) can share them.
+    """
+    try:
+        from gliner2 import GLiNER2  # type: ignore
+    except ImportError as exc:  # pragma: no cover - optional dependency
+        raise RuntimeError(
+            "gliner2 is not installed. Install it or use the 'regex' extractor "
+            "provider in extractor.json."
+        ) from exc
+    return GLiNER2.from_pretrained(model_name)
+
+
 class Gliner2Extractor(Extractor):
     def __init__(self, extractor_config: dict[str, Any]) -> None:
         super().__init__(extractor_config)
-        try:
-            from gliner2 import GLiNER2  # type: ignore
-        except ImportError as exc:  # pragma: no cover - optional dependency
-            raise RuntimeError(
-                "gliner2 is not installed. Install it or use the 'regex' extractor "
-                "provider in extractor.json."
-            ) from exc
-
         model_name = extractor_config.get("extractor", {}).get(
             "model", "fastino/gliner2-base-v1"
         )
-        self._model = GLiNER2.from_pretrained(model_name)
+        self._model = _load_model(model_name)
         self._labels = list(self.entities.keys())
 
     def extract(self, query: str, locale: str = "en") -> ExtractionResult:  # pragma: no cover

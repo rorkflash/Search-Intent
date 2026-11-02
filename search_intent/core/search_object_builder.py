@@ -42,8 +42,13 @@ def parse_price(expressions: list[str]) -> dict[str, float]:
 
 
 def parse_year(expressions: list[str]) -> dict[str, int]:
-    """Turn year phrases like 'from 2012 to 2016' into year_from/year_to."""
+    """Turn year phrases like 'from 2012 to 2016' into year_from/year_to.
+
+    Bare years are pooled across expressions, so an extractor that returns
+    the range as separate spans (["2016", "2012"]) still yields 2012..2016.
+    """
     result: dict[str, int] = {}
+    bare: list[int] = []
     for expr in expressions:
         years = [int(y) for y in _YEAR_NUM_RE.findall(expr)]
         if not years:
@@ -56,9 +61,12 @@ def parse_year(expressions: list[str]) -> dict[str, int]:
         elif any(w in lowered for w in _MAX_WORDS):
             result["year_to"] = years[0]
         else:
-            # "in 2012" / bare year → exact year on both bounds
-            result["year_from"] = years[0]
-            result["year_to"] = years[0]
+            bare.append(years[0])
+    if bare:
+        # "in 2012" / one bare year → exact year on both bounds; several bare
+        # years → the span between them. Explicit from/to cues win.
+        result.setdefault("year_from", min(bare))
+        result.setdefault("year_to", max(bare))
     return result
 
 

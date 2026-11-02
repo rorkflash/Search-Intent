@@ -1078,8 +1078,8 @@ It opens `http://127.0.0.1:8090/`. Options: `--port`, `--host`,
   Review them with `git diff`.
 - After each save the collection is checked the way the service loads it, and
   any error or warnings are shown under the editor.
-- The tester runs `parse`, `generate` or `search`, with caching off so a saved
-  edit shows up in the next run. For `generate` and `search` it also shows the
+- The tester runs `parse`, `generate` or `search`, with caching off so an
+  edit shows up in the next run, including edits made outside the sandbox. For `generate` and `search` it also shows the
   parse stage (intent and extracted entities) next to the output. `search`
   calls the collection's target API for real.
 - Inbound auth is skipped and files are writable over HTTP, so the sandbox is

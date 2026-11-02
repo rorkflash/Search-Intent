@@ -15,6 +15,8 @@ from typing import Any
 from search_intent.config import ConfigError, load_config, validate_config
 from search_intent.config.loader import CONFIG_FILES
 
+from .file_docs import FILE_DOCS
+
 NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 
 # The service's default SEARCH_INTENT_CONFIG_DIR points here.
@@ -62,7 +64,7 @@ def _starter_files(name: str) -> dict[str, Any]:
         },
         "api-map": {
             "version": "1.0.0",
-            "api": {"base_url": "https://api.example.com", "mode": "generate"},
+            "api": {"base_url": "https://api.example.com", "mode": "generate_only"},
             "endpoints": {
                 "search": {
                     "method": "GET",
@@ -126,6 +128,7 @@ class CollectionStore:
                     "stem": stem,
                     "required": required,
                     "present": (base / f"{stem}.json").is_file(),
+                    "doc": FILE_DOCS[stem],
                 }
                 for stem, required in CONFIG_FILES.items()
             ],

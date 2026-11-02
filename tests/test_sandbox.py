@@ -9,7 +9,9 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from sandbox.file_docs import FILE_DOCS
 from sandbox.server import create_app
+from search_intent.config.loader import CONFIG_FILES
 
 DEFAULT = Path(__file__).resolve().parent.parent / "config" / "default"
 
@@ -42,6 +44,16 @@ def test_lists_collections_with_validation(sandbox: TestClient) -> None:
     files = {f["stem"]: f for f in default["files"]}
     assert files["project"]["present"] and files["project"]["required"]
     assert not files["geo"]["present"]
+
+
+def test_every_config_file_is_described(sandbox: TestClient) -> None:
+    # A new entry in CONFIG_FILES needs a description in sandbox/file_docs.py.
+    assert set(FILE_DOCS) == set(CONFIG_FILES)
+    for stem, doc in FILE_DOCS.items():
+        assert doc["purpose"] and doc["summary"], stem
+
+    [default] = sandbox.get("/api/collections").json()
+    assert all(f["doc"]["purpose"] for f in default["files"])
 
 
 def test_serves_the_ui(sandbox: TestClient) -> None:
@@ -82,6 +94,17 @@ def test_saved_edit_shows_up_in_the_next_run(sandbox: TestClient, root: Path) ->
     assert _run(sandbox, "default", "red Nike shoes")["output"]["search_object"]["resolved"][
         "brand_ids"
     ] == [99]
+
+
+def test_edit_on_disk_shows_up_in_the_next_run(sandbox: TestClient, root: Path) -> None:
+    _run(sandbox, "default", "red Nike shoes")
+
+    path = root / "default" / "resolver-map.json"
+    path.write_text(path.read_text().replace('"nike": 42', '"nike": 77'))
+
+    assert _run(sandbox, "default", "red Nike shoes")["output"]["search_object"]["resolved"][
+        "brand_ids"
+    ] == [77]
 
 
 def test_save_keeps_the_text_as_sent(sandbox: TestClient, root: Path) -> None:

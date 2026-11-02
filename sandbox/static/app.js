@@ -176,13 +176,25 @@ function renderCollections() {
         const item = document.createElement("li");
         const selected = state.file?.collection === c.name && state.file?.stem === f.stem;
         item.className = (f.present ? "" : "absent") + (selected ? " selected" : "");
-        item.textContent = `${f.stem}.json`;
-        if (f.present && f.required) {
-          const req = document.createElement("span");
-          req.className = "req";
-          req.textContent = "required";
-          item.append(req);
+        item.title = plain(f.doc.summary);
+
+        const line = document.createElement("div");
+        line.className = "line";
+        const fname = document.createElement("span");
+        fname.className = "fname";
+        fname.textContent = `${f.stem}.json`;
+        line.append(fname);
+        const tagText = !f.present ? "+ add" : f.required ? "required" : "";
+        if (tagText) {
+          const tag = document.createElement("span");
+          tag.className = "tag";
+          tag.textContent = tagText;
+          line.append(tag);
         }
+        const purpose = document.createElement("div");
+        purpose.className = "purpose";
+        purpose.textContent = f.doc.purpose;
+        item.append(line, purpose);
         item.addEventListener("click", () => openFile(c.name, f.stem));
         files.append(item);
       }
@@ -220,6 +232,35 @@ async function deleteCollection(name) {
   }
 }
 
+// --- About this file -------------------------------------------------------
+const ABOUT_OPEN_KEY = "search-intent-sandbox:about-open";
+
+// Doc text marks code with `backticks`.
+const plain = (text) => text.replace(/`/g, "");
+const rich = (text) => escapeHtml(text).replace(/`([^`]+)`/g, "<code>$1</code>");
+
+function renderAbout(stem, doc, required) {
+  const about = $("#about");
+  $("#about-title").innerHTML =
+    `About <strong>${stem}.json</strong>: ${escapeHtml(doc.purpose)}` +
+    ` <span class="muted">(${required ? "required" : "optional"})</span>`;
+  const keys = doc.keys.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${rich(v)}</dd>`).join("");
+  const notes = doc.notes.map((n) => `<li>${rich(n)}</li>`).join("");
+  $("#about-body").innerHTML =
+    `<p>${rich(doc.summary)}</p>` +
+    (keys ? `<dl>${keys}</dl>` : "") +
+    (notes ? `<ul>${notes}</ul>` : "");
+  about.hidden = false;
+}
+
+function wireAbout() {
+  const about = $("#about");
+  try { about.open = localStorage.getItem(ABOUT_OPEN_KEY) !== "0"; } catch { about.open = true; }
+  about.addEventListener("toggle", () => {
+    try { localStorage.setItem(ABOUT_OPEN_KEY, about.open ? "1" : "0"); } catch { /* storage unavailable */ }
+  });
+}
+
 // --- Files -----------------------------------------------------------------
 async function openFile(name, stem) {
   if (!state.editor || !confirmDiscard()) return;
@@ -235,6 +276,7 @@ async function openFile(name, stem) {
     $("#editor-title").textContent = `${name} / ${stem}.json` + (f.present ? "" : " (new)");
     $("#format").disabled = false;
     $("#remove-file").hidden = !f.present || f.required;
+    renderAbout(stem, f.doc, f.required);
     history.replaceState(null, "", `#${name}/${stem}`);
     renderCollections();
     renderValidation(collection(name).validation);
@@ -253,6 +295,7 @@ function closeFile() {
   $("#format").disabled = true;
   $("#remove-file").hidden = true;
   $("#validation").hidden = true;
+  $("#about").hidden = true;
   history.replaceState(null, "", location.pathname);
   updateDirty();
 }
@@ -484,6 +527,7 @@ async function copyResult() {
 
 // --- Wiring ----------------------------------------------------------------
 function wire() {
+  wireAbout();
   $("#new-collection").addEventListener("click", openNewDialog);
   $("#new-form").addEventListener("submit", submitNewCollection);
   $("#save").addEventListener("click", save);

@@ -149,22 +149,48 @@ code, pre, textarea.fallback { font-family: ui-monospace, "SF Mono", Menlo, Cons
 
 .files { list-style: none; margin: 2px 0 8px; padding: 0 0 0 16px; }
 .files li {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 8px;
+  padding: 3px 8px 4px;
   border-radius: 5px;
   cursor: pointer;
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
 }
 .files li:hover { background: var(--hover); }
 .files li.selected { background: var(--selected); }
-.files li.absent { color: var(--muted); }
-.files li.absent::after { content: "+ add"; margin-left: auto; font-family: inherit; font-size: 11px; }
-.files li .req { color: var(--muted); font-size: 10px; margin-left: auto; }
+.files .line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+.files .fname { overflow: hidden; text-overflow: ellipsis; }
+.files .tag { color: var(--muted); font-size: 10px; margin-left: auto; flex: none; }
+.files .purpose { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; }
+.files li.absent .fname { color: var(--muted); }
+
+/* About this file */
+.about { border-bottom: 1px solid var(--border); font-size: 12.5px; }
+.about > summary {
+  cursor: pointer;
+  padding: 6px 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.about > summary strong { color: var(--text); font-weight: 600; }
+.about-body { padding: 0 12px 10px; max-height: 32vh; overflow: auto; }
+.about-body p { margin: 0 0 8px; }
+.about-body dl { margin: 0 0 8px; display: grid; grid-template-columns: minmax(120px, 34%) 1fr; gap: 4px 12px; }
+.about-body dt { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 11.5px; color: var(--j-key); word-break: break-word; }
+.about-body dd { margin: 0; }
+.about-body ul { margin: 0; padding-left: 18px; color: var(--muted); }
+.about-body code { font-size: 11.5px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0 3px; }
+@media (max-width: 600px) {
+  .about-body dl { grid-template-columns: 1fr; }
+  .about-body dd { margin-bottom: 4px; }
+}
 
 /* Editor */
 .editor-pane { min-width: 0; }

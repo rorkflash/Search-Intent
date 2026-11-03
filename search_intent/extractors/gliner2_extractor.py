@@ -17,6 +17,7 @@ human-oriented descriptions hurt extraction.
 
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import Any
 
 from .base import ExtractionResult, Extractor
@@ -34,21 +35,30 @@ def model_name(extractor_config: dict[str, Any], default_model: str | None = Non
     return extractor_config.get("extractor", {}).get("model") or default_model or BUILTIN_MODEL
 
 
+@lru_cache(maxsize=None)
+def _load_model(name: str) -> Any:
+    """Load each model once per process.
+
+    The weights are read-only at inference time, so pipelines built from
+    different configs (the sandbox holds one per collection) can share them.
+    """
+    try:
+        from gliner2 import AutoExtractor  # type: ignore
+    except ImportError as exc:  # pragma: no cover - optional dependency
+        raise RuntimeError(
+            "gliner2 2.x is not installed. Install gliner2[local] or use the "
+            "'regex' extractor provider in extractor.json."
+        ) from exc
+    return AutoExtractor.from_pretrained(name)
+
+
 class Gliner2Extractor(Extractor):
     def __init__(
         self, extractor_config: dict[str, Any], default_model: str | None = None
     ) -> None:
         super().__init__(extractor_config)
-        try:
-            from gliner2 import AutoExtractor  # type: ignore
-        except ImportError as exc:  # pragma: no cover - optional dependency
-            raise RuntimeError(
-                "gliner2 2.x is not installed. Install gliner2[local] or use the "
-                "'regex' extractor provider in extractor.json."
-            ) from exc
-
         self.model_name = model_name(extractor_config, default_model)
-        self._model = AutoExtractor.from_pretrained(self.model_name)
+        self._model = _load_model(self.model_name)
         self._entity_types = self._build_entity_types()
 
     def _build_entity_types(self) -> list[str] | dict[str, str]:

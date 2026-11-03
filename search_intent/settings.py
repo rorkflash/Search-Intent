@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     env: str = Field("development", alias="SEARCH_INTENT_ENV")
     host: str = Field("0.0.0.0", alias="SEARCH_INTENT_HOST")
     port: int = Field(8080, alias="SEARCH_INTENT_PORT")
-    config_dir: str = Field("./config", alias="SEARCH_INTENT_CONFIG_DIR")
+    config_dir: str = Field("./config/default", alias="SEARCH_INTENT_CONFIG_DIR")
     plugin_dir: str = Field("./plugins", alias="SEARCH_INTENT_PLUGIN_DIR")
     model_cache_dir: str = Field("./models", alias="MODEL_CACHE_DIR")
     # GLiNER model for collections whose extractor.json names none.

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Search Intent Sandbox</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Search Intent <span>sandbox</span></div>
+    <div class="topbar-note">Edits save to <code>config/&lt;collection&gt;/</code>. Review them with <code>git diff</code>.</div>
+  </header>
+
+  <main class="layout">
+    <!-- Collections -->
+    <aside class="pane sidebar">
+      <div class="pane-head">
+        <h2>Collections</h2>
+        <button id="new-collection" class="btn small">New</button>
+      </div>
+      <ul id="collections" class="collections"></ul>
+    </aside>
+
+    <!-- Editor -->
+    <section class="pane editor-pane">
+      <div class="pane-head">
+        <h2 id="editor-title">Select a file</h2>
+        <span id="dirty" class="dirty" hidden>unsaved</span>
+        <div class="spacer"></div>
+        <button id="format" class="btn small ghost" disabled>Format</button>
+        <button id="revert" class="btn small ghost" disabled>Revert</button>
+        <button id="remove-file" class="btn small ghost danger" hidden>Remove file</button>
+        <button id="save" class="btn small primary" disabled title="Save (⌘S / Ctrl+S)">Save</button>
+      </div>
+      <details id="about" class="about" hidden>
+        <summary id="about-title"></summary>
+        <div id="about-body" class="about-body"></div>
+      </details>
+      <div id="editor" class="editor">
+        <div class="empty">Pick a collection on the left, then one of its config files.</div>
+      </div>
+      <div id="validation" class="validation" hidden></div>
+    </section>
+
+    <!-- Tester -->
+    <section class="pane tester">
+      <div class="pane-head"><h2>Test a query</h2></div>
+      <form id="run-form" class="run-form">
+        <label class="field">
+          <span>Collection</span>
+          <select id="run-collection"></select>
+        </label>
+        <div class="field">
+          <span>Mode</span>
+          <div class="segmented" role="radiogroup">
+            <label><input type="radio" name="mode" value="parse"><span>parse</span></label>
+            <label><input type="radio" name="mode" value="generate" checked><span>generate</span></label>
+            <label><input type="radio" name="mode" value="search"><span>search</span></label>
+          </div>
+        </div>
+        <p id="search-note" class="hint" hidden>search calls the collection's target API for real.</p>
+        <label class="field">
+          <span>Query</span>
+          <textarea id="query" rows="3" placeholder="Harry Potter places in London" required></textarea>
+        </label>
+        <div id="recent" class="recent"></div>
+        <details class="more">
+          <summary>Locale, paging and location</summary>
+          <div class="grid">
+            <label class="field"><span>Locale</span><input id="locale" value="en"></label>
+            <label class="field"><span>Limit</span><input id="limit" type="number" min="1" max="200"></label>
+            <label class="field"><span>Offset</span><input id="offset" type="number" min="0"></label>
+            <label class="field"><span>Lat</span><input id="lat" type="number" step="any" min="-90" max="90"></label>
+            <label class="field"><span>Lng</span><input id="lng" type="number" step="any" min="-180" max="180"></label>
+            <label class="field"><span>Radius km</span><input id="radius" type="number" step="any" min="0"></label>
+          </div>
+        </details>
+        <button id="run" type="submit" class="btn primary wide" title="Run (⌘↵ / Ctrl+Enter)">Run</button>
+      </form>
+
+      <div class="result">
+        <div class="result-head">
+          <div class="tabs">
+            <button class="tab active" data-view="output">Output</button>
+            <button class="tab" data-view="stages" id="stages-tab" hidden>Parse stage</button>
+          </div>
+          <span id="elapsed" class="elapsed"></span>
+          <button id="copy" class="btn small ghost" disabled>Copy</button>
+        </div>
+        <pre id="output" class="json"><span class="muted">Run a query to see the JSON the service would return.</span></pre>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="new-dialog">
+    <form method="dialog" id="new-form">
+      <h3>New collection</h3>
+      <label class="field">
+        <span>Name</span>
+        <input id="new-name" required pattern="[a-z0-9][a-z0-9_\-]{0,63}" placeholder="my-collection" autocomplete="off">
+        <small>Lowercase letters, digits, - and _. Becomes the folder name.</small>
+      </label>
+      <label class="field">
+        <span>Start from</span>
+        <select id="new-from"></select>
+      </label>
+      <p id="new-error" class="error-text" hidden></p>
+      <div class="dialog-actions">
+        <button value="cancel" class="btn ghost" formnovalidate>Cancel</button>
+        <button value="create" class="btn primary" id="new-submit">Create</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

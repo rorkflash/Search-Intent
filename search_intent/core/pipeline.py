@@ -27,7 +27,7 @@ class Pipeline:
         self.settings = settings
 
         self.cache = CacheManager(config.cache, redis_url=settings.redis_url)
-        self.extractor = build_extractor(config.extractor)
+        self.extractor = build_extractor(config.extractor, settings.gliner2_model)
         self.intent_detector = IntentDetector(config.intent_map)
         self.resolvers = build_resolvers(config.resolver_map)
         self.builder = SearchObjectBuilder(

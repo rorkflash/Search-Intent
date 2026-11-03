@@ -8,12 +8,15 @@ from .base import ExtractionResult, Extractor
 from .regex_extractor import RegexExtractor
 
 
-def build_extractor(extractor_config: dict[str, Any]) -> Extractor:
+def build_extractor(
+    extractor_config: dict[str, Any], default_model: str | None = None
+) -> Extractor:
+    """``default_model`` is the GLiNER model used when extractor.json names none."""
     provider = extractor_config.get("extractor", {}).get("provider", "regex")
     if provider in ("gliner", "gliner2"):
         from .gliner2_extractor import Gliner2Extractor
 
-        return Gliner2Extractor(extractor_config)
+        return Gliner2Extractor(extractor_config, default_model)
     if provider == "regex":
         return RegexExtractor(extractor_config)
     raise ValueError(f"Unknown extractor provider: {provider!r}")

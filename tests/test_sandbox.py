@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 from pathlib import Path
 
@@ -54,6 +55,15 @@ def test_every_config_file_is_described(sandbox: TestClient) -> None:
 
     [default] = sandbox.get("/api/collections").json()
     assert all(f["doc"]["purpose"] for f in default["files"])
+
+
+def test_uses_the_service_model_cache(
+    root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("HF_HOME", raising=False)
+    monkeypatch.setenv("MODEL_CACHE_DIR", str(tmp_path / "models"))
+    create_app(root)
+    assert os.environ["HF_HOME"] == str(tmp_path / "models")
 
 
 def test_serves_the_ui(sandbox: TestClient) -> None:

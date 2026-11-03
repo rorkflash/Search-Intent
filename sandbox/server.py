@@ -7,6 +7,7 @@ so it binds to localhost and is never part of the service image.
 from __future__ import annotations
 
 import asyncio
+import os
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -55,8 +56,12 @@ class RunResponse(BaseModel):
 def create_app(config_root: str | Path = DEFAULT_CONFIG_ROOT) -> FastAPI:
     # Http resolvers and api-map *_from_env lookups read os.environ directly.
     load_dotenv()
+    settings = get_settings()
+    # Same model cache as the service (see search_intent.main), so the sandbox
+    # doesn't download a second copy of each model into ~/.cache.
+    os.environ.setdefault("HF_HOME", os.path.abspath(settings.model_cache_dir))
     store = CollectionStore(config_root)
-    registry = PipelineRegistry(store, get_settings())
+    registry = PipelineRegistry(store, settings)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):

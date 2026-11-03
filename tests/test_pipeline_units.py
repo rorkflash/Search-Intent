@@ -37,6 +37,15 @@ def test_parse_year_since():
     assert parse_year(["since 2010"]) == {"year_from": 2010}
 
 
+def test_parse_year_single_bare_year():
+    assert parse_year(["2012"]) == {"year_from": 2012, "year_to": 2012}
+
+
+def test_parse_year_pools_bare_years_into_range():
+    # GLiNER2 returns "from 2012 to 2016" as two separate spans.
+    assert parse_year(["2016", "2012"]) == {"year_from": 2012, "year_to": 2016}
+
+
 def test_regex_extractor_finds_entities():
     extractor = build_extractor(EXTRACTOR_CONFIG)
     result = extractor.extract("red Nike shoes under $100")

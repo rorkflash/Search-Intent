@@ -21,9 +21,23 @@ from typing import Any
 
 from .base import ExtractionResult, Extractor
 
+BUILTIN_MODEL = "fastino/gliner2-base-v1"
+
+
+def model_name(extractor_config: dict[str, Any], default_model: str | None = None) -> str:
+    """The model a collection runs: extractor.json's ``model``, else
+    ``default_model`` (the GLINER2_MODEL env var), else BUILTIN_MODEL.
+
+    scripts/prefetch_models.py uses this too, so the Docker image bakes in
+    exactly the models the service will ask for.
+    """
+    return extractor_config.get("extractor", {}).get("model") or default_model or BUILTIN_MODEL
+
 
 class Gliner2Extractor(Extractor):
-    def __init__(self, extractor_config: dict[str, Any]) -> None:
+    def __init__(
+        self, extractor_config: dict[str, Any], default_model: str | None = None
+    ) -> None:
         super().__init__(extractor_config)
         try:
             from gliner2 import AutoExtractor  # type: ignore
@@ -33,10 +47,8 @@ class Gliner2Extractor(Extractor):
                 "'regex' extractor provider in extractor.json."
             ) from exc
 
-        model_name = extractor_config.get("extractor", {}).get(
-            "model", "fastino/gliner2-base-v1"
-        )
-        self._model = AutoExtractor.from_pretrained(model_name)
+        self.model_name = model_name(extractor_config, default_model)
+        self._model = AutoExtractor.from_pretrained(self.model_name)
         self._entity_types = self._build_entity_types()
 
     def _build_entity_types(self) -> list[str] | dict[str, str]:

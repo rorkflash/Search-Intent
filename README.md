@@ -475,7 +475,11 @@ With `provider: "gliner2"`:
 
 - **`model`** can be a GLiNER2 checkpoint (such as `fastino/gliner2-base-v1`)
   or a GLiNER2.5 one (such as `fastino/gliner2.5-base-v1`). Both load through
-  `AutoExtractor`.
+  `AutoExtractor`. When it's left out, the collection uses the `GLINER2_MODEL`
+  env var, or `fastino/gliner2-base-v1` if that isn't set either.
+- **Docker:** the image runs offline and only has the models baked in at build
+  time. If a collection relies on `GLINER2_MODEL`, set it as a build arg
+  (`docker build --build-arg GLINER2_MODEL=...`), not just at `docker run`.
 - **What the model sees:** the label name, plus the entity's
   `model_description` when it has one. Keep that to one short line written
   for the model, for example `"Movie genre, such as comedy, horror or
@@ -889,6 +893,9 @@ REDIS_URL=redis://localhost:6379/0
 
 # Models
 MODEL_CACHE_DIR=./models
+# GLiNER model for collections whose extractor.json sets no "model"
+# (movietrip sets its own). In Docker, pass it as --build-arg too, so the
+# image bakes it in.
 GLINER2_MODEL=fastino/gliner2-base-v1
 ```
 

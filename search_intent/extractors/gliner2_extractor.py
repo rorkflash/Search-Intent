@@ -1,8 +1,18 @@
 """Optional GLiNER2-based extractor.
 
-Requires the ``gliner2`` package and a model (configured in extractor.json).
-It is imported lazily so the service runs without the heavy ML dependency.
-Install with: ``uv add gliner2`` (and a torch backend).
+Requires the ``gliner2[local]`` package (it brings torch) and a model
+(configured in extractor.json). It is imported lazily so the service runs
+without the heavy ML dependency.
+
+Both checkpoint families load through ``AutoExtractor``: GLiNER2 span models
+(``fastino/gliner2-base-v1``) and GLiNER2.5 boundary models
+(``fastino/gliner2.5-base-v1``).
+
+What the model sees per label is the label name plus, when set, the entity's
+``model_description``: one short line written for the model, e.g. "Movie
+genre, such as comedy, horror or western". The plain ``description`` field is
+for people and is not sent; benchmarks/extractor showed that long,
+human-oriented descriptions hurt extraction.
 """
 
 from __future__ import annotations
@@ -16,23 +26,33 @@ class Gliner2Extractor(Extractor):
     def __init__(self, extractor_config: dict[str, Any]) -> None:
         super().__init__(extractor_config)
         try:
-            from gliner2 import GLiNER2  # type: ignore
+            from gliner2 import AutoExtractor  # type: ignore
         except ImportError as exc:  # pragma: no cover - optional dependency
             raise RuntimeError(
-                "gliner2 is not installed. Install it or use the 'regex' extractor "
-                "provider in extractor.json."
+                "gliner2 2.x is not installed. Install gliner2[local] or use the "
+                "'regex' extractor provider in extractor.json."
             ) from exc
 
         model_name = extractor_config.get("extractor", {}).get(
             "model", "fastino/gliner2-base-v1"
         )
-        self._model = GLiNER2.from_pretrained(model_name)
-        self._labels = list(self.entities.keys())
+        self._model = AutoExtractor.from_pretrained(model_name)
+        self._entity_types = self._build_entity_types()
+
+    def _build_entity_types(self) -> list[str] | dict[str, str]:
+        described = {
+            label: spec["model_description"]
+            for label, spec in self.entities.items()
+            if spec.get("model_description")
+        }
+        if not described:
+            return list(self.entities.keys())
+        return {label: described.get(label, label) for label in self.entities}
 
     def extract(self, query: str, locale: str = "en") -> ExtractionResult:  # pragma: no cover
         result = self._model.extract_entities(
             query,
-            self._labels,
+            self._entity_types,
             threshold=self.entity_threshold,
             include_confidence=True,
         )

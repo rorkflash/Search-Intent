@@ -5,14 +5,6 @@
     "year is scored on the 4-digit years only, which is all the search-object builder reads.",
     "Cases marked tricky test boundaries: a city inside a title, regions that are not cities, an ambiguous country word with no context."
   ],
-  "model_descriptions": {
-    "movie_title": "Title of a movie or TV show",
-    "city": "Name of a city or town",
-    "country": "Name of a country",
-    "location_type": "Kind of place, such as bar, cafe, museum, bridge, church, hotel or train station",
-    "genre": "Movie genre, such as comedy, horror, sci-fi, romance or western",
-    "year": "A four-digit year"
-  },
   "cases": [
     {"query": "Harry Potter places in London", "entities": {"movie_title": ["Harry Potter"], "city": ["London"]}},
     {"query": "Harry Potter filming locations in London", "entities": {"movie_title": ["Harry Potter"], "city": ["London"]}},

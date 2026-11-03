@@ -1,18 +1,14 @@
 """Compare GLiNER models and prompting on a labelled set of queries.
 
-    uv run python benchmarks/extractor/run.py           # every setup gliner2 can load
-    uv run python benchmarks/extractor/run.py --setups base,base+short --errors
+    uv run python benchmarks/extractor/run.py           # every setup
+    uv run python benchmarks/extractor/run.py --setups base,2.5-base+model --errors
 
-GLiNER2.5 checkpoints need gliner2 2.x (AutoExtractor), which the service pins
-out. Run those in a throwaway environment:
+To try other descriptions or a threshold without touching the collection, copy
+its extractor.json, edit the copy and pass it with --config.
 
-    uv run --no-project --with 'gliner2[local]>=2' \
-        python benchmarks/extractor/run.py --setups 2.5-base,2.5-small
-
-Only gliner2 and the standard library are imported, so the script runs in
-either environment. Scores compare extracted values with the gold values as
-sets per label (ignoring case and surrounding punctuation); `year` compares the
-4-digit years only, which is all the search-object builder reads.
+Scores compare extracted values with the gold values as sets per label
+(ignoring case and surrounding punctuation); `year` compares the 4-digit years
+only, which is all the search-object builder reads.
 """
 
 from __future__ import annotations
@@ -36,17 +32,14 @@ MODELS = {
     "2.5-base": "fastino/gliner2.5-base-v1",
     "2.5-small": "fastino/gliner2.5-small-v1",
 }
-# What the model is told about each label: nothing (what the service does
-# today), extractor.json's `description`, or the cases file's model_descriptions.
-PROMPTS = {"": "labels", "+config": "config", "+short": "short"}
+# What the model is told about each label: its name only, extractor.json's
+# `description` (written for people), or its `model_description` (what the
+# service sends).
+PROMPTS = {"": "labels", "+config": "description", "+model": "model_description"}
 SETUPS = [m + p for m in MODELS for p in PROMPTS]
 
 _YEAR_RE = re.compile(r"\b(1[89]\d{2}|20\d{2})\b")
 _EDGE = " \t.,;:!?\"'“”‘’"
-
-
-class Skip(Exception):
-    pass
 
 
 def normalize(label: str, values: list[str]) -> set[str]:
@@ -61,14 +54,8 @@ def normalize(label: str, values: list[str]) -> set[str]:
 
 
 def load_model(name: str) -> Any:
-    try:
-        from gliner2 import AutoExtractor  # gliner2 >= 2
-    except ImportError:
-        if name.startswith("fastino/gliner2.5"):
-            raise Skip("needs gliner2 >= 2 (AutoExtractor)") from None
-        from gliner2 import GLiNER2
+    from gliner2 import AutoExtractor
 
-        return GLiNER2.from_pretrained(name)
     return AutoExtractor.from_pretrained(name)
 
 
@@ -83,21 +70,17 @@ def extract(model: Any, query: str, entity_types: Any, threshold: float) -> dict
     return found
 
 
-def entity_types(prompt: str, labels: list[str], config: dict, cases: dict) -> Any:
+def entity_types(prompt: str, labels: list[str], config: dict) -> Any:
     if prompt == "labels":
         return labels
-    if prompt == "config":
-        source = {k: v.get("description", "") for k, v in config["entities"].items()}
-    else:
-        source = cases.get("model_descriptions", {})
-    return {label: source.get(label) or label for label in labels}
+    return {label: config["entities"][label].get(prompt) or label for label in labels}
 
 
 def run_setup(
     setup: str, model: Any, labels: list[str], config: dict, cases: dict, threshold: float
 ) -> dict[str, Any]:
     prompt = PROMPTS[setup[setup.index("+"):] if "+" in setup else ""]
-    types = entity_types(prompt, labels, config, cases)
+    types = entity_types(prompt, labels, config)
     for case in cases["cases"][:2]:  # warm-up, not timed
         extract(model, case["query"], types, threshold)
 
@@ -203,14 +186,8 @@ def main() -> None:
         if name not in loaded:
             print(f"loading {name} ...", file=sys.stderr)
             start = time.perf_counter()
-            try:
-                loaded[name] = (load_model(name), round(time.perf_counter() - start, 1))
-            except Skip as exc:
-                loaded[name] = (exc, 0)
+            loaded[name] = (load_model(name), round(time.perf_counter() - start, 1))
         model, load_s = loaded[name]
-        if isinstance(model, Skip):
-            print(f"skipping {setup}: {model}", file=sys.stderr)
-            continue
         print(f"running {setup} ...", file=sys.stderr)
         result = run_setup(setup, model, labels, config, cases, threshold)
         result["load_s"] = load_s

@@ -471,6 +471,21 @@ Defines how Search Intent extracts entities and intent-related information from 
 
 The core engine does not hardcode business labels. Entity labels come from JSON config.
 
+With `provider: "gliner2"`:
+
+- **`model`** can be a GLiNER2 checkpoint (such as `fastino/gliner2-base-v1`)
+  or a GLiNER2.5 one (such as `fastino/gliner2.5-base-v1`). Both load through
+  `AutoExtractor`.
+- **What the model sees:** the label name, plus the entity's
+  `model_description` when it has one. Keep that to one short line written
+  for the model, for example `"Movie genre, such as comedy, horror or
+  western"`.
+- **`description`** is for people and is not sent to the model.
+- **`examples`** and the regex-only options are ignored.
+
+To compare models or descriptions before changing them, use the
+[extractor benchmark](benchmarks/extractor/README.md).
+
 ---
 
 ## `intent-map.json`

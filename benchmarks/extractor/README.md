@@ -4,17 +4,15 @@ Scores GLiNER models, and different ways of describing the labels to them, on
 a labelled set of queries for one collection.
 
 ```bash
-# span models (gliner2 1.x, the version the service uses)
 uv run python benchmarks/extractor/run.py --errors
-
-# GLiNER2.5 boundary models need gliner2 2.x, in a throwaway environment
-uv run --no-project --with 'gliner2[local]>=2' \
-    python benchmarks/extractor/run.py --setups base,2.5-base,2.5-base+short,2.5-small
+uv run python benchmarks/extractor/run.py --setups base,2.5-base+model
 ```
 
 Options: `--setups` picks setups, `--errors` lists every query with a wrong
 label, `--json FILE` saves full results, `--threshold` overrides
 `extractor.json`, and `--cases` points at another collection's query file.
+To try new descriptions without touching the collection, edit a copy of its
+`extractor.json` and pass it with `--config`.
 
 ## Setups
 
@@ -22,12 +20,12 @@ A setup is a model plus what the model is told about each label:
 
 | Suffix | What the model gets | Notes |
 | --- | --- | --- |
-| *(none)* | Label names only | What the service does today |
+| *(none)* | Label names only | What the service sends when no `model_description` is set |
 | `+config` | `description` from `extractor.json` | Written for people, not the model |
-| `+short` | `model_descriptions` from the query file | One short line per label |
+| `+model` | `model_description` from `extractor.json` | What the service sends |
 
-Models: `base` (`fastino/gliner2-base-v1`, in production), `large`
-(`gliner2-large-v1`), `2.5-base` (`gliner2.5-base-v1`) and `2.5-small`
+Models: `base` (`fastino/gliner2-base-v1`), `large` (`gliner2-large-v1`),
+`2.5-base` (`gliner2.5-base-v1`, used by movietrip) and `2.5-small`
 (`gliner2.5-small-v1`).
 
 ## Scoring
@@ -55,37 +53,40 @@ and pass `--cases`.
 
 ## Results: 2026-11-03, movietrip, threshold 0.35, Apple Silicon CPU
 
+These results led to movietrip's switch to `2.5-base+model`. "Today" below means
+the setup before that switch.
+
 | Setup | P | R | F1 | All correct | ms/query |
 | --- | --- | --- | --- | --- | --- |
 | base (today) | 0.63 | 0.80 | 0.71 | 18/57 | 33 |
 | base+config | 0.73 | 0.67 | 0.70 | 22/57 | 75 |
-| base+short | 0.69 | 0.80 | 0.74 | 24/57 | 49 |
+| base+model | 0.69 | 0.80 | 0.74 | 24/57 | 49 |
 | large | 0.65 | 0.76 | 0.70 | 15/57 | 79 |
-| large+short | 0.77 | 0.79 | 0.78 | 29/57 | 119 |
+| large+model | 0.77 | 0.79 | 0.78 | 29/57 | 119 |
 | 2.5-small | 0.47 | 0.67 | 0.55 | 5/57 | 15 |
-| 2.5-small+short | 0.57 | 0.76 | 0.65 | 10/57 | 30 |
+| 2.5-small+model | 0.57 | 0.76 | 0.65 | 10/57 | 30 |
 | 2.5-base | 0.71 | 0.84 | 0.77 | 23/57 | 29 |
 | 2.5-base+config | 0.78 | 0.78 | 0.78 | 27/57 | 73 |
-| **2.5-base+short** | **0.80** | **0.84** | **0.82** | **33/57** | **47** |
+| **2.5-base+model** | **0.80** | **0.84** | **0.82** | **33/57** | **47** |
 
 F1 by label:
 
 | Setup | movie_title | city | country | location_type | genre | year |
 | --- | --- | --- | --- | --- | --- | --- |
 | base (today) | 0.65 | 0.94 | 0.93 | 0.51 | 0.30 | 1.00 |
-| base+short | 0.46 | 0.91 | 0.90 | 0.74 | 0.80 | 1.00 |
-| large+short | 0.58 | 0.88 | 0.93 | 0.69 | 0.78 | 1.00 |
+| base+model | 0.46 | 0.91 | 0.90 | 0.74 | 0.80 | 1.00 |
+| large+model | 0.58 | 0.88 | 0.93 | 0.69 | 0.78 | 1.00 |
 | 2.5-base | 0.63 | 0.91 | 0.93 | 0.50 | 0.85 | 1.00 |
-| 2.5-base+short | 0.63 | 0.92 | 0.90 | 0.82 | 0.88 | 1.00 |
+| 2.5-base+model | 0.63 | 0.92 | 0.90 | 0.82 | 0.88 | 1.00 |
 
 What the results show:
 
-- **Best setup:** `2.5-base+short`. Queries with every label right go from 18
+- **Best setup:** `2.5-base+model`. Queries with every label right go from 18
   to 33, at 47 ms per query instead of 33.
 - **Upgrade alone:** `2.5-base` with no descriptions already beats today's
   setup at the same speed. Genre F1 goes from 0.30 to 0.85, because the base
   model tags "horror movies" rather than "horror".
-- **Descriptions:** short, model-oriented descriptions help every model. The
+- **Descriptions:** short, model-oriented descriptions (`+model`) help every model. The
   existing `extractor.json` descriptions are written for people and help
   less, or hurt.
 - **Weak spots:** `large` costs 2–4× the time for less gain than 2.5-base.

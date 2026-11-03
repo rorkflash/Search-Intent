@@ -39,11 +39,11 @@ def main() -> int:
         return 0
 
     # Imported here so the "nothing to prefetch" path stays dependency-free.
-    from gliner2 import GLiNER2
+    from gliner2 import AutoExtractor
 
     for model in sorted(models):
         print(f"Prefetching {model} into HF_HOME={os.environ.get('HF_HOME', '<unset>')}")
-        GLiNER2.from_pretrained(model)
+        AutoExtractor.from_pretrained(model)
     return 0
 
 

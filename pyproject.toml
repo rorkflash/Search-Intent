@@ -64,3 +64,5 @@ select = ["E", "F", "I"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+# pytest resets warning filters per test, so repeat the one in gliner2_extractor.
+filterwarnings = ["ignore:`torch.jit.script` is deprecated:FutureWarning"]

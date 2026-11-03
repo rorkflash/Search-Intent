@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     config_dir: str = Field("./config/default", alias="SEARCH_INTENT_CONFIG_DIR")
     plugin_dir: str = Field("./plugins", alias="SEARCH_INTENT_PLUGIN_DIR")
     model_cache_dir: str = Field("./models", alias="MODEL_CACHE_DIR")
+    # GLiNER model for collections whose extractor.json names none.
+    gliner2_model: str | None = Field(None, alias="GLINER2_MODEL")
 
     # Inbound JWT
     jwt_secret: str | None = Field(None, alias="SEARCH_INTENT_JWT_SECRET")

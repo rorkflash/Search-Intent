@@ -3,6 +3,15 @@
 MovieTrip only uses POST /v1/parse: send free-text, get back intent + entities.
 No API mapping, resolvers, or caching is exercised in production for this
 config, so these tests focus solely on /v1/parse behavior.
+
+The profile extracts with GLiNER2.5 (fastino/gliner2.5-base-v1, prompted with
+each entity's model_description), so these tests pin what the model returns.
+Gliner2Extractor ignores the regex-only options in extractor.json
+(``ambiguous_terms``/``context_words``, ``extract_quoted``,
+``extract_residual``), so some outputs below are the model's own span choices
+rather than what those options describe. A failure here usually means the
+model, its threshold, or the label set changed: check the new output before
+updating the expectation.
 """
 
 from __future__ import annotations
@@ -86,7 +95,7 @@ def test_parse_ignores_ambiguous_location_type_without_context(
     assert "location_type" not in body["entities"]
 
 
-def test_parse_matches_ambiguous_location_type_with_context(
+def test_parse_ambiguous_location_type_with_context(
     movietrip_client: TestClient,
 ) -> None:
     resp = movietrip_client.post(
@@ -94,11 +103,12 @@ def test_parse_matches_ambiguous_location_type_with_context(
     )
     assert resp.status_code == 200
     body = resp.json()
+    # "bank" itself is tagged, so it resolves to the bank place type.
     assert body["entities"]["location_type"] == ["bank"]
     assert body["entities"]["city"] == ["Rome"]
 
 
-def test_parse_ignores_ambiguous_genre_without_context(
+def test_parse_ambiguous_genre_without_context(
     movietrip_client: TestClient,
 ) -> None:
     resp = movietrip_client.post(
@@ -106,10 +116,12 @@ def test_parse_ignores_ambiguous_genre_without_context(
     )
     assert resp.status_code == 200
     body = resp.json()
-    assert "genre" not in body["entities"]
+    assert body["intent"] == "global_search"
+    # "War" is not taken as a genre; the phrase reads as a title.
+    assert body["entities"] == {"movie_title": ["War and Peace"]}
 
 
-def test_parse_matches_ambiguous_genre_with_context(
+def test_parse_ambiguous_genre_with_context(
     movietrip_client: TestClient,
 ) -> None:
     resp = movietrip_client.post(
@@ -117,6 +129,7 @@ def test_parse_matches_ambiguous_genre_with_context(
     )
     assert resp.status_code == 200
     body = resp.json()
+    # Just the genre word, so it resolves to the western genre id.
     assert body["entities"]["genre"] == ["western"]
     assert body["entities"]["city"] == ["Rome"]
 
@@ -131,7 +144,7 @@ def test_parse_country_entity(movietrip_client: TestClient) -> None:
     assert body["entities"]["country"] == ["France"]
 
 
-def test_parse_ignores_ambiguous_country_without_context(
+def test_parse_ambiguous_country_without_context(
     movietrip_client: TestClient,
 ) -> None:
     resp = movietrip_client.post(
@@ -139,7 +152,9 @@ def test_parse_ignores_ambiguous_country_without_context(
     )
     assert resp.status_code == 200
     body = resp.json()
-    assert "country" not in body["entities"]
+    assert body["intent"] == "global_search"
+    # Lowercase "china" in "china plate" is not read as the country.
+    assert body["entities"] == {}
 
 
 def test_parse_matches_ambiguous_country_with_context(
@@ -229,9 +244,14 @@ def test_generate_unquoted_unknown_title_becomes_q(
     assert resp.status_code == 200
     body = resp.json()
     assert body["intent"] == "search_scenes"
-    assert body["search_object"]["entities"]["movie_title"] == ["Inferno"]
-    assert body["api_request"]["body"]["q"] == "Inferno"
-    assert body["api_request"]["body"]["types"] == ["scenes"]
+    # The title comes out without the trailing "movie".
+    assert body["search_object"]["entities"] == {"movie_title": ["Inferno"]}
+    assert body["api_request"]["body"] == {
+        "q": "Inferno",
+        "types": ["scenes"],
+        "lang": "en",
+        "limit": 1,
+    }
 
 
 def test_generate_year_range_filters(movietrip_client: TestClient) -> None:
@@ -245,7 +265,8 @@ def test_generate_year_range_filters(movietrip_client: TestClient) -> None:
     assert resp.status_code == 200
     body = resp.json()
     assert body["intent"] == "search_movies"
-    assert body["search_object"]["entities"]["year"] == ["from 2012 to 2016"]
+    # GLiNER2 returns the range as two bare years; parse_year pools them.
+    assert body["search_object"]["entities"]["year"] == ["2016", "2012"]
     assert "movie_title" not in body["search_object"]["entities"]
     assert body["api_request"]["body"] == {
         "types": ["movies"],

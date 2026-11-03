@@ -21,6 +21,12 @@ ENV PATH="/app/.venv/bin:$PATH" \
     MODEL_CACHE_DIR=/app/models \
     HF_HOME=/app/models
 
+# Default GLiNER model for collections whose extractor.json names none. Pass it
+# here (--build-arg GLINER2_MODEL=...) rather than only at `docker run`: the
+# image runs offline, so it can only load models baked in below.
+ARG GLINER2_MODEL=
+ENV GLINER2_MODEL=${GLINER2_MODEL}
+
 # Bake the GLiNER2 weights into the image (see scripts/prefetch_models.py for
 # why a runtime download is not an option here).
 COPY scripts/prefetch_models.py ./scripts/

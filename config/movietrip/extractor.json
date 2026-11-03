@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "extractor": {
     "provider": "gliner2",
-    "model": "fastino/gliner2-base-v1",
+    "model": "fastino/gliner2.5-base-v1",
     "mode": "combined_schema",
     "thresholds": {
       "entity": 0.35,
@@ -12,6 +12,7 @@
   "entities": {
     "movie_title": {
       "label": "movie_title",
+      "model_description": "Title of a movie or TV show",
       "description": "Movie or TV show title. Do NOT list the full catalog in examples. extract_quoted handles 'Title'/\"Title\"; extract_residual takes leftover text after other entities + search keywords (so unquoted Inferno works). Optional examples only boost a few common titles.",
       "extract_quoted": true,
       "extract_residual": true,
@@ -46,6 +47,7 @@
     },
     "city": {
       "label": "city",
+      "model_description": "Name of a city or town",
       "description": "City with existing MovieTrip content. Snapshot of GET /v1/cities from mt-backend-data (only cities with places/scenes/movies). Re-sync this list as new cities get content; it is not a fixed enum.",
       "ambiguous_terms": ["Nice", "Orange", "Rye"],
       "context_words": ["city", "town", "visit", "trip", "travel", "vacation", "located", "filmed", "set", "movie", "movies", "film", "films"],
@@ -235,6 +237,7 @@
     },
     "country": {
       "label": "country",
+      "model_description": "Name of a country",
       "description": "Country name. Snapshot of GET /v1/countries from mt-backend-data (full reference list). Re-sync only if the reference table changes (rare).",
       "ambiguous_terms": ["Chad", "China", "Georgia", "Jordan", "Turkey", "Jersey"],
       "context_words": ["country", "nation", "visit", "trip", "travel", "vacation", "abroad", "located", "filmed", "set", "movie", "movies", "film", "films"],
@@ -510,6 +513,7 @@
     },
     "location_type": {
       "label": "location_type",
+      "model_description": "Kind of place, such as bar, cafe, museum, bridge, church, hotel or train station",
       "description": "Type of filming location. Values map 1:1 to place_type IDs via resolver-map.json.",
       "ambiguous_terms": ["sport", "bank", "club", "building", "nature", "square"],
       "context_words": ["location", "place", "spot", "venue", "area"],
@@ -553,6 +557,7 @@
     },
     "genre": {
       "label": "genre",
+      "model_description": "Movie genre, such as comedy, horror, sci-fi, romance or western",
       "description": "Movie or show genre. Values map 1:1 to genre IDs via resolver-map.json.",
       "ambiguous_terms": ["War", "Crime", "Western"],
       "context_words": ["movie", "movies", "film", "films", "genre", "show", "shows"],
@@ -582,6 +587,7 @@
     },
     "year": {
       "label": "year",
+      "model_description": "A four-digit year",
       "description": "Release year or year range (e.g. from 2012 to 2016, since 2010, in 1999). Parsed into year_from/year_to filters."
     }
   }

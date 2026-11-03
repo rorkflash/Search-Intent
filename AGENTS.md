@@ -8,8 +8,8 @@ file explains how to add or change a **collection**: one folder under
 - `config/default/` is the example shop. It targets DummyJSON and uses the
   regex extractor. `tests/test_api.py` depends on it, so leave it alone unless
   the task is about it.
-- `config/movietrip/` is the MovieTrip profile, which uses GLiNER2. It's a
-  good model for a real collection.
+- `config/movietrip/` is the MovieTrip profile, which uses GLiNER2.5
+  (`fastino/gliner2.5-base-v1`). It's a good model for a real collection.
 
 The service loads one collection at startup, picked by
 `SEARCH_INTENT_CONFIG_DIR`. The sandbox (`sandbox/`) loads all of them, which
@@ -81,11 +81,19 @@ collection.
   - `extract_quoted`: quoted spans in the query become values.
   - `extract_residual` with `residual_stopwords` and `residual_cues`:
     leftover text becomes the value. This is how unknown titles get through.
-- **`provider: "gliner2"`** uses the model named in `model`. It is given only
-  the entity **keys** as labels, so `description`, `examples` and all of the
-  regex options above have no effect. Name the keys in plain words that
-  describe the value (`movie_title`, not `mt`). Tune `thresholds.entity`
-  instead.
+- **`provider: "gliner2"`** runs a GLiNER model:
+  - **Which model:** the one named in `model`. Both GLiNER2 and GLiNER2.5
+    checkpoints work. When `model` is left out, the `GLINER2_MODEL` env var
+    applies, then `fastino/gliner2-base-v1`.
+  - **What it sees:** each entity **key** plus its `model_description`, a
+    short line written for the model, such as `"Movie genre, such as comedy,
+    horror or western"`. Name keys in plain words (`movie_title`, not `mt`).
+  - **What it ignores:** `description` (for people), `examples` and all of
+    the regex options above.
+  - **Tuning:** adjust `thresholds.entity`. Before changing `model`,
+    `model_description` or the threshold, compare setups with
+    `uv run python benchmarks/extractor/run.py` (see
+    `benchmarks/extractor/README.md`).
 - **Special labels** that the search-object builder treats differently:
   - `price`: phrases like "under $100" become `filters.price = {min, max}`.
   - `year`: phrases like "from 2012 to 2016" become `filters.year_from` and
@@ -214,7 +222,7 @@ curl -s -X POST http://127.0.0.1:8090/api/collections/<name>/run \
 - **Output:** for `generate` and `search`, the response includes `stages`,
   which shows the intent and extracted entities.
 - **Prefer `generate`:** `search` calls the target API for real.
-- **Model load:** the first GLiNER2 run in a process takes about 10 s while
+- **Model load:** the first GLiNER run in a process takes about 10 s while
   the model loads.
 
 **With the service:**

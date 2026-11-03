@@ -14,11 +14,11 @@ dependencies = [
     "pyjwt[crypto]>=2.8",
     "jsonpath-ng>=1.6",
     "jinja2>=3.1",
-    # <2.0 pinned deliberately: 2.0.0 dropped the peft/transformers/torch
-    # dependency chain entirely (a real breaking change for
-    # gliner2_extractor.py's GLiNER2.from_pretrained() call), which an
-    # unconstrained lock refresh would otherwise pick up silently.
-    "gliner2>=1.3.2,<2.0.0",
+    # 2.x is needed for GLiNER2.5 (boundary) checkpoints, which only load
+    # through AutoExtractor. Since 2.0 the local-inference stack (torch,
+    # transformers, peft) is opt-in via the [local] extra; without it the
+    # package is just the cloud API client.
+    "gliner2[local]>=2.1,<3",
     # Declared directly only so [tool.uv.sources] below can pin it: uv applies
     # sources to direct dependencies only, and torch would otherwise arrive
     # transitively (gliner2 -> peft) straight from PyPI with the CUDA build.

@@ -40,8 +40,16 @@ FILE_DOCS: dict[str, dict[str, Any]] = {
         ),
         "keys": [
             ("extractor.provider", "`regex` (no model, uses examples) or `gliner2` (ML model)."),
-            ("extractor.model", "GLiNER2 model name, e.g. `fastino/gliner2-base-v1`."),
-            ("extractor.thresholds.entity", "GLiNER2 confidence cut-off (default 0.35)."),
+            (
+                "extractor.model",
+                "GLiNER model, e.g. `fastino/gliner2.5-base-v1`. Left out: the "
+                "`GLINER2_MODEL` env var, else `fastino/gliner2-base-v1`.",
+            ),
+            ("extractor.thresholds.entity", "GLiNER confidence cut-off (default 0.35)."),
+            (
+                "entities.<label>.model_description",
+                "GLiNER only: one short line telling the model what the label means.",
+            ),
             ("entities.<label>.examples", "Regex only: words matched as whole words, any case."),
             (
                 "entities.<label>.ambiguous_terms + context_words",
@@ -56,8 +64,9 @@ FILE_DOCS: dict[str, dict[str, Any]] = {
             ),
         ],
         "notes": [
-            "GLiNER2 is given only the label names, so `description`, `examples` and the "
-            "regex-only options have no effect with it. Name labels in plain words.",
+            "GLiNER is given each label name plus its `model_description`. `description`, "
+            "`examples` and the regex-only options have no effect with it.",
+            "Check model or description changes with `benchmarks/extractor/run.py` first.",
             "Special labels: `price` becomes `filters.price {min,max}`, `year` becomes "
             "`filters.year_from`/`year_to`, and the first `movie_title` becomes `filters.q`.",
         ],

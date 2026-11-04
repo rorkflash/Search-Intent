@@ -186,7 +186,7 @@ Movie Location Search Intent service
 - Natural-language query parsing
 - Configurable intent detection
 - Configurable entity extraction
-- GLiNER / GLiNER2-compatible extractor interface
+- GLiNER2 and GLiNER2.5 extractors, plus a regex extractor that needs no model
 - JSON-based project configuration
 - Search object generation
 - API request generation
@@ -196,7 +196,8 @@ Movie Location Search Intent service
 - Optional API execution mode
 - Inbound JWT authentication
 - Outbound API authentication
-- Root-level Python plugin system
+- Local sandbox for editing and testing collections
+- Benchmark for comparing extractor models
 - Project-agnostic core
 - Docker-ready structure
 
@@ -204,11 +205,13 @@ Movie Location Search Intent service
 
 ## Quick Start
 
+The project uses [uv](https://docs.astral.sh/uv/).
+
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_ORG/search-intent.git
-cd search-intent
+git clone https://github.com/rorkflash/Search-Intent.git
+cd Search-Intent
 ```
 
 ### 2. Create environment file
@@ -217,31 +220,19 @@ cd search-intent
 cp .env.example .env
 ```
 
-Edit `.env`:
-
-```env
-SEARCH_INTENT_ENV=development
-SEARCH_INTENT_HOST=0.0.0.0
-SEARCH_INTENT_PORT=8080
-SEARCH_INTENT_CONFIG_DIR=./config/default
-SEARCH_INTENT_PLUGIN_DIR=./plugins
-
-TARGET_API_BASE_URL=https://api.example.com
-TARGET_API_TOKEN=change_me
-
-REDIS_URL=redis://localhost:6379/0
-```
+The defaults run the bundled example shop (`config/default`), which needs no
+model, no Redis and no API keys.
 
 ### 3. Install dependencies
 
 ```bash
-pip install -e .
+uv sync
 ```
 
 ### 4. Run the service
 
 ```bash
-uvicorn search_intent.main:app --host 0.0.0.0 --port 8080 --reload
+uv run python -m search_intent
 ```
 
 ### 5. Test it
@@ -250,9 +241,26 @@ uvicorn search_intent.main:app --host 0.0.0.0 --port 8080 --reload
 curl -X POST http://localhost:8080/v1/generate \
   -H "Content-Type: application/json" \
   -d '{
-    "query": "Harry Potter places in London",
+    "query": "red Nike shoes under $100",
     "locale": "en"
   }'
+```
+
+### 6. Try another collection
+
+To run the MovieTrip collection, set `SEARCH_INTENT_CONFIG_DIR`. It uses a
+GLiNER2.5 model, so the first start downloads about 750 MB into
+`MODEL_CACHE_DIR`:
+
+```bash
+SEARCH_INTENT_CONFIG_DIR=./config/movietrip uv run python -m search_intent
+```
+
+To browse, edit and test every collection in a browser, use the
+[sandbox](#sandbox):
+
+```bash
+uv run python -m sandbox
 ```
 
 ---
@@ -269,27 +277,37 @@ Health check:
 curl http://localhost:8080/health
 ```
 
+The image has the models its collections need built in, and it runs without
+access to the Hugging Face Hub. `docker-compose.yml` runs `config/default`; set
+`SEARCH_INTENT_CONFIG_DIR` to run another collection.
+
 ---
 
 ## Project Structure
 
 ```text
-search-intent/
+Search-Intent/
   README.md
+  AGENTS.md                 # guide to creating a collection (CLAUDE.md imports it)
   LICENSE
   pyproject.toml
+  uv.lock
   Dockerfile
   docker-compose.yml
   .env.example
 
-  search_intent/
+  search_intent/            # the service
     main.py
+    settings.py
+    models.py
 
     api/
       routes_parse.py
       routes_generate.py
       routes_search.py
       routes_health.py
+      deps.py
+      docs.py
 
     core/
       pipeline.py
@@ -320,6 +338,7 @@ search-intent/
       jwt.py
 
     cache/
+      base.py
       manager.py
       redis_cache.py
       memory_cache.py
@@ -328,46 +347,17 @@ search-intent/
       loader.py
       validator.py
 
-    plugins/
-      base_auth.py
-      base_api.py
-      base_resolver.py
-      base_extractor.py
-      base_cache.py
+    plugins/                # base interfaces for plugins
 
-  config/
-    project.json
-    extractor.json
-    search-map.json
-    intent-map.json
-    search-object-schema.json
-    api-map.json
-    resolver-map.json
-    cache.json
-    auth-inbound.json
+  config/                   # one folder per collection
+    default/                # example shop, targets DummyJSON
+    movietrip/              # MovieTrip profile
 
-  plugins/
-    auth/
-      jwt_auth.py
-
-    api/
-      api_plugin.py
-
-    resolver/
-      resolver_plugin.py
-
-    extractor/
-      extractor_plugin.py
-
-  examples/
-    ecommerce/
-      config/
-
-    movie_locations/
-      config/
-
-    documents/
-      config/
+  sandbox/                  # local web app for collections, not in the image
+  benchmarks/extractor/     # compares extractor models on labelled queries
+  plugins/auth/jwt_auth.py  # example plugin
+  scripts/prefetch_models.py  # bakes models into the Docker image
+  tests/
 ```
 
 ---
@@ -383,13 +373,14 @@ service loads one of them, picked by `SEARCH_INTENT_CONFIG_DIR`
 ```text
 config/
   default/      # example shop, targets DummyJSON
-  movietrip/    # MovieTrip parse profile
+  movietrip/    # MovieTrip profile
 ```
 
-A collection folder holds:
+A collection folder holds these files. `project`, `extractor`, `intent-map`,
+`search-map` and `api-map` are required, and the rest are optional:
 
 ```text
-config/default/
+config/<collection>/
   project.json
   extractor.json
   search-map.json
@@ -402,20 +393,15 @@ config/default/
   geo.json
 ```
 
-Example configs can live in:
-
-```text
-examples/
-```
-
-You can copy one example into the active config directory:
+To add a collection, copy the closest existing one:
 
 ```bash
-cp -r examples/ecommerce/config ./config
+cp -r config/movietrip config/my-collection
 ```
 
-To browse, edit, create and test collections in a browser, use the
-[sandbox](#sandbox).
+Then set `name` in its `project.json`. [AGENTS.md](AGENTS.md) walks through the
+rest, file by file. To browse, edit, create and test collections in a browser,
+use the [sandbox](#sandbox).
 
 ---
 
@@ -433,69 +419,101 @@ Defines basic project metadata.
 }
 ```
 
+The service reports `name` on `/health`. The locale fields are informational
+for now: a request without `locale` is treated as `en`.
+
 ---
 
 ## `extractor.json`
 
-Defines how Search Intent extracts entities and intent-related information from user queries.
+Defines the entities to find in a query and how to find them. The keys of
+`entities` are labels that the other config files refer to. The core engine does
+not hardcode business labels.
+
+### With a GLiNER model
 
 ```json
 {
   "version": "1.0.0",
   "extractor": {
     "provider": "gliner2",
-    "model": "fastino/gliner2-base-v1",
-    "mode": "combined_schema",
+    "model": "fastino/gliner2.5-base-v1",
     "thresholds": {
-      "entity": 0.35,
-      "classification": 0.45
+      "entity": 0.35
     }
   },
   "entities": {
     "product": {
       "label": "product",
-      "description": "Product name or product type",
-      "examples": ["running shoes", "laptop", "winter jacket"]
+      "model_description": "Product name or product type"
     },
     "brand": {
       "label": "brand",
-      "description": "Product brand or manufacturer",
-      "examples": ["Nike", "Apple", "Samsung"]
-    },
-    "color": {
-      "label": "color",
-      "description": "Product color",
-      "examples": ["red", "black", "white"]
+      "model_description": "Product brand or manufacturer"
     },
     "price": {
       "label": "price",
-      "description": "Price, price limit, or price range",
-      "examples": ["under $100", "between 50 and 200"]
+      "model_description": "Price, price limit, or price range"
     }
   }
 }
 ```
 
-The core engine does not hardcode business labels. Entity labels come from JSON config.
-
-With `provider: "gliner2"`:
-
 - **`model`** can be a GLiNER2 checkpoint (such as `fastino/gliner2-base-v1`)
   or a GLiNER2.5 one (such as `fastino/gliner2.5-base-v1`). Both load through
   `AutoExtractor`. When it's left out, the collection uses the `GLINER2_MODEL`
   env var, or `fastino/gliner2-base-v1` if that isn't set either.
-- **Docker:** the image runs offline and only has the models baked in at build
-  time. If a collection relies on `GLINER2_MODEL`, set it as a build arg
-  (`docker build --build-arg GLINER2_MODEL=...`), not just at `docker run`.
 - **What the model sees:** the label name, plus the entity's
   `model_description` when it has one. Keep that to one short line written
   for the model, for example `"Movie genre, such as comedy, horror or
   western"`.
 - **`description`** is for people and is not sent to the model.
-- **`examples`** and the regex-only options are ignored.
+- **`examples`** and the regex-only options below are ignored.
+- **Model cache:** a model already in `MODEL_CACHE_DIR` loads from disk without
+  contacting the Hub. To pick up a newer revision, delete it from there.
+- **Docker:** the image runs offline and only has the models baked in at build
+  time. If a collection relies on `GLINER2_MODEL`, set it as a build arg
+  (`docker build --build-arg GLINER2_MODEL=...`), not just at `docker run`.
 
 To compare models or descriptions before changing them, use the
 [extractor benchmark](benchmarks/extractor/README.md).
+
+### With the regex extractor
+
+`provider: "regex"` needs no model. It matches each entity's `examples` as whole
+words, ignoring case:
+
+```json
+{
+  "version": "1.0.0",
+  "extractor": {
+    "provider": "regex"
+  },
+  "entities": {
+    "brand": {
+      "label": "brand",
+      "description": "Product brand or manufacturer",
+      "examples": ["Nike", "Apple", "Samsung"]
+    },
+    "price": {
+      "label": "price",
+      "description": "Price, price limit, or price range"
+    }
+  }
+}
+```
+
+It also supports per-entity `ambiguous_terms` with `context_words`,
+`extract_quoted` and `extract_residual`. [AGENTS.md](AGENTS.md) explains these.
+
+### Special labels
+
+The search-object builder treats three labels differently:
+
+- `price`: phrases like "under $100" become `filters.price`.
+- `year`: phrases like "from 2012 to 2016" become `filters.year_from` and
+  `filters.year_to`.
+- `movie_title`: the first value becomes `filters.q`.
 
 ---
 
@@ -555,11 +573,16 @@ Defines searchable business objects.
 }
 ```
 
+Every object named in an intent's `default_objects` must be defined here. Only
+the object names are used by code today; `aliases`, `entities` and
+`searchable_fields` describe the object for people.
+
 ---
 
 ## `search-object-schema.json`
 
-Defines the normalized internal search object.
+Defines the normalized internal search object. Only `defaults` is applied at
+runtime; `schema` documents the shape and is not checked.
 
 ```json
 {
@@ -621,8 +644,7 @@ Example config:
         "q": "{{ value }}"
       },
       "result_path": "$.items[*].id",
-      "target": "brand_ids",
-      "cache_ttl_seconds": 2592000
+      "target": "brand_ids"
     },
     "category": {
       "type": "http",
@@ -632,12 +654,13 @@ Example config:
         "q": "{{ value }}"
       },
       "result_path": "$.items[*].id",
-      "target": "category_ids",
-      "cache_ttl_seconds": 2592000
+      "target": "category_ids"
     }
   }
 }
 ```
+
+Resolved IDs are cached for the `resolved_entity` TTL in `cache.json`.
 
 ---
 
@@ -828,10 +851,6 @@ For gateway-to-service JWT validation:
   "inbound_auth": {
     "enabled": true,
     "type": "jwt",
-    "plugin": {
-      "module": "plugins.auth.jwt_auth",
-      "class": "JwtInboundAuthPlugin"
-    },
     "token_source": {
       "type": "header",
       "name": "Authorization",
@@ -852,59 +871,34 @@ For gateway-to-service JWT validation:
 }
 ```
 
-For production, prefer RS256/ES256 with JWKS.
+The built-in check verifies the token with a shared secret (HS256 by default).
+JWKS is not supported yet, so `SEARCH_INTENT_JWKS_URL` has no effect.
+`required_permissions` are checked against the token's `permissions` claim.
 
 ---
 
 ## Environment Variables
 
-Do not put secrets in JSON config.
+Do not put secrets in JSON config. Copy `.env.example` to `.env` to set these
+locally:
 
-Use environment variables for:
+| Variable | Purpose |
+| --- | --- |
+| `SEARCH_INTENT_ENV` | `development` turns on auto-reload with `python -m search_intent` |
+| `SEARCH_INTENT_HOST`, `SEARCH_INTENT_PORT` | Where the service listens (default port 8080) |
+| `SEARCH_INTENT_CONFIG_DIR` | The collection to load (default `./config/default`) |
+| `SEARCH_INTENT_JWT_SECRET`, `_ISSUER`, `_AUDIENCE` | Inbound JWT check, when `auth-inbound.json` enables it |
+| `TARGET_API_BASE_URL`, `TARGET_API_TOKEN`, `TARGET_API_KEY` | Target API settings, read through the `*_from_env` names in `api-map.json` |
+| `TARGET_BRAND_RESOLVER_URL`, `TARGET_CATEGORY_RESOLVER_URL` | HTTP resolver URLs, read through `url_from_env` in `resolver-map.json` |
+| `REDIS_URL` | Redis connection, when `cache.json` selects the `redis` backend |
+| `MODEL_CACHE_DIR` | Where models are stored (default `./models`) |
+| `GLINER2_MODEL` | GLiNER model for collections whose `extractor.json` names none |
 
-- JWT secrets
-- API tokens
-- API keys
-- Redis URL
-- target API base URL
-- model path
-- environment-specific values
+The `*_from_env` fields name any variable you like, so the target API and
+resolver names above are just the ones the bundled collections use.
 
-Example `.env.example`:
-
-```env
-# App
-SEARCH_INTENT_ENV=development
-SEARCH_INTENT_HOST=0.0.0.0
-SEARCH_INTENT_PORT=8080
-SEARCH_INTENT_CONFIG_DIR=./config/default
-SEARCH_INTENT_PLUGIN_DIR=./plugins
-
-# Inbound JWT
-SEARCH_INTENT_JWT_SECRET=change_me_for_local_dev_only
-SEARCH_INTENT_JWT_ISSUER=search-intent-gateway
-SEARCH_INTENT_JWT_AUDIENCE=search-intent
-SEARCH_INTENT_JWKS_URL=https://auth.example.com/.well-known/jwks.json
-
-# Target API
-TARGET_API_BASE_URL=https://api.example.com
-TARGET_API_TOKEN=change_me
-TARGET_API_KEY=change_me
-
-# Resolvers
-TARGET_BRAND_RESOLVER_URL=https://api.example.com/brands/resolve
-TARGET_CATEGORY_RESOLVER_URL=https://api.example.com/categories/resolve
-
-# Cache
-REDIS_URL=redis://localhost:6379/0
-
-# Models
-MODEL_CACHE_DIR=./models
-# GLiNER model for collections whose extractor.json sets no "model"
-# (movietrip sets its own). In Docker, pass it as --build-arg too, so the
-# image bakes it in.
-GLINER2_MODEL=fastino/gliner2-base-v1
-```
+`SEARCH_INTENT_PLUGIN_DIR` and `SEARCH_INTENT_JWKS_URL` are reserved and not read
+yet.
 
 Recommended `.gitignore`:
 
@@ -928,7 +922,8 @@ Health check.
 
 ```json
 {
-  "status": "ok"
+  "status": "ok",
+  "project": "example-shop"
 }
 ```
 
@@ -960,8 +955,8 @@ Response:
     "price": ["under $100"]
   },
   "confidence": {
-    "intent": 0.91,
-    "entities": 0.87
+    "intent": 0.53,
+    "entities": 0.8
   }
 }
 ```
@@ -990,7 +985,7 @@ query names no place — see [`geo.json`](#geojson):
 }
 ```
 
-Response:
+Response, using the bundled `config/default` collection:
 
 ```json
 {
@@ -998,6 +993,9 @@ Response:
   "locale": "en",
   "intent": "search_products",
   "search_object": {
+    "query": "red Nike shoes under $100",
+    "locale": "en",
+    "intent": "search_products",
     "objects": ["product"],
     "entities": {
       "product": ["shoes"],
@@ -1006,43 +1004,37 @@ Response:
       "price": ["under $100"]
     },
     "resolved": {
-      "brand_ids": [42],
-      "category_ids": [7]
+      "brand_ids": [42]
     },
     "filters": {
+      "product": ["shoes"],
       "brand_ids": [42],
-      "category_ids": [7],
       "color": ["red"],
       "price": {
-        "max": 100
+        "max": 100.0
       }
+    },
+    "sort": {
+      "by": "relevance",
+      "direction": "desc"
     },
     "pagination": {
       "limit": 20,
       "offset": 0
-    }
+    },
+    "geo": null
   },
   "api_request": {
-    "method": "POST",
-    "url": "https://api.example.com/api/search",
+    "method": "GET",
+    "url": "https://dummyjson.com/products/search",
     "headers": {
-      "Content-Type": "application/json"
+      "Accept": "application/json"
     },
-    "body": {
-      "objects": ["product"],
-      "query": "red Nike shoes under $100",
-      "filters": {
-        "brand_ids": [42],
-        "category_ids": [7],
-        "color": ["red"],
-        "price": {
-          "max": 100
-        }
-      },
-      "pagination": {
-        "limit": 20,
-        "offset": 0
-      }
+    "body": null,
+    "query": {
+      "q": "red Nike shoes under $100",
+      "limit": 20,
+      "skip": 0
     }
   },
   "cache": {
@@ -1073,13 +1065,23 @@ Request:
 
 Response:
 
+The same fields as `/v1/generate`, plus the target API's reply:
+
 ```json
 {
+  "query": "red Nike shoes under $100",
+  "locale": "en",
+  "intent": "search_products",
   "search_object": {},
   "api_request": {},
-  "api_response": {}
+  "api_response": {},
+  "cache": {
+    "hit": false
+  }
 }
 ```
+
+With `api.mode` set to `generate_only`, `api_response` is `null`.
 
 ---
 
@@ -1107,20 +1109,38 @@ It opens `http://127.0.0.1:8090/`. Options: `--port`, `--host`,
 - Inbound auth is skipped and files are writable over HTTP, so the sandbox is
   for local development only. It binds to localhost and is not part of the
   Docker image.
+- Each file has a description next to it: what it's for, its main fields and
+  common pitfalls.
+- The delete button removes a collection's folder for good. A collection that
+  isn't committed to git can't be recovered.
+
+---
+
+## Extractor Benchmark
+
+Compares GLiNER models and label descriptions on labelled queries, reporting
+accuracy per label and time per query:
+
+```bash
+uv run python benchmarks/extractor/run.py --errors
+```
+
+See [benchmarks/extractor/README.md](benchmarks/extractor/README.md) for how to
+read the results, and for the numbers behind MovieTrip's choice of model.
 
 ---
 
 ## Caching
 
-Search Intent can cache:
+Search Intent caches:
 
 ```text
-entities
-resolved entities
 search objects
-generated API requests
-target API responses
+resolved entities
 ```
+
+`cache.json` can also hold key patterns for `entities`, `api_request` and
+`api_response`, but nothing uses those yet.
 
 Example `cache.json`:
 
@@ -1165,79 +1185,49 @@ Example `cache.json`:
 
 ## Plugins
 
-Use JSON config first. Use plugins only when config is not enough.
+Plugins are not wired up yet: nothing loads a plugin from config, and a
+`"plugin"` block in a JSON file is ignored. Config-driven loading is on the
+[roadmap](#roadmap).
 
-Plugins live in the root-level `plugins/` directory:
+What exists today:
 
-```text
-plugins/
-  auth/
-    jwt_auth.py
+- `search_intent/plugins/` has the base interfaces: `BaseInboundAuth`,
+  `BaseCache`, `BaseExtractor` and `BaseResolver`.
+- `plugins/auth/jwt_auth.py` is an example that subclasses `BaseInboundAuth`.
 
-  api/
-    api_plugin.py
+Use JSON config first. If config isn't enough, subclass a base interface and
+wire it in with a code change.
 
-  resolver/
-    resolver_plugin.py
-
-  extractor/
-    extractor_plugin.py
-
-  cache/
-    cache_plugin.py
-```
-
-Base plugin interfaces live in:
-
-```text
-search_intent/plugins/
-```
-
-Plugin example in config:
-
-```json
-{
-  "plugin": {
-    "enabled": true,
-    "module": "plugins.api.api_plugin",
-    "class": "ProjectApiPlugin"
-  }
-}
-```
-
-Use plugins for:
-
-- custom auth
-- custom API signing
-- complex API payloads
-- custom entity resolution
-- custom extraction post-processing
-- custom cache keys
-- response post-processing
-
-Plugins are trusted local code. Do not load arbitrary plugin paths from user input.
+When plugin loading arrives, plugins will be trusted local code. Never load
+plugin paths from user input.
 
 ---
 
 ## Example Use Cases
 
+E-Commerce and Movie Locations show real output from the bundled collections.
+Real Estate and Document Search are sketches of what a collection could produce;
+no such collections ship with the project.
+
 ### E-Commerce
+
+Using `config/default`.
 
 Input:
 
 ```text
-"red Nike running shoes under $100"
+"red Nike shoes under $100"
 ```
 
 Generated filters:
 
 ```json
 {
-  "brand": "Nike",
-  "color": "red",
-  "category": "running shoes",
+  "product": ["shoes"],
+  "brand_ids": [42],
+  "color": ["red"],
   "price": {
-    "max": 100
+    "max": 100.0
   }
 }
 ```
@@ -1266,6 +1256,8 @@ Generated filters:
 
 ### Movie Locations
 
+Using `config/movietrip`.
+
 Input:
 
 ```text
@@ -1276,8 +1268,9 @@ Generated filters:
 
 ```json
 {
-  "movie_title": "Harry Potter",
-  "city": "London"
+  "movie_title": ["Harry Potter"],
+  "city_ids": [536],
+  "q": "Harry Potter"
 }
 ```
 
@@ -1308,20 +1301,22 @@ Generated filters:
 - FastAPI service
 - single active project config
 - JSON config loader
-- GLiNER / GLiNER2-compatible extractor interface
-- rule-based intent fallback
+- GLiNER2 and GLiNER2.5 extractors, plus a regex extractor
+- rule-based intent detection
 - SearchObject builder
 - API mapper
 - static resolver
 - HTTP resolver
 - Redis cache support
-- inbound JWT plugin
+- inbound JWT authentication
 - outbound API auth
-- root-level plugin system
-- example configs
+- local sandbox for collections
+- extractor benchmark
 
 ### v0.2.0
 
+- config-driven plugin loading
+- JWKS support for inbound JWT
 - structured extraction mode
 - relation extraction support
 - better confidence scoring
@@ -1329,10 +1324,11 @@ Generated filters:
 - OpenAPI documentation polish
 - config validation CLI
 - plugin scaffolding CLI
+- more example collections
 
 ### v0.3.0
 
-- query evaluation suite
+- query evaluation suite, building on the extractor benchmark
 - multilingual normalization helpers
 - analytics hooks
 - response post-processing plugins
@@ -1347,7 +1343,8 @@ Generated filters:
 - Keep secrets in environment variables or secret managers.
 - Do not load plugins from user input.
 - Validate all generated API requests before execution.
-- Prefer RS256/ES256 + JWKS for production JWT verification.
+- Inbound JWT verification uses a shared secret, so keep it strong and rotate it.
+- Never expose the sandbox: it edits config files over HTTP with no auth.
 - Use `generate_only` mode when Search Intent should not directly call target APIs.
 
 ---
@@ -1367,36 +1364,27 @@ Good first contributions:
 - tests
 - Docker/deployment templates
 
+To add or change a collection, follow [AGENTS.md](AGENTS.md).
+
 Before opening a pull request:
 
 ```bash
-pytest
-ruff check .
+uv run --extra dev pytest -q
+uv run --extra dev ruff check .
 ```
 
 ---
 
 ## License
 
-Recommended license:
-
-```text
-Apache-2.0
-```
-
-or:
-
-```text
-MIT
-```
-
-Choose Apache-2.0 if you want a permissive license with explicit patent protection. Choose MIT if you want the simplest permissive license.
+MIT. See [LICENSE](LICENSE).
 
 ---
 
 ## Status
 
-Search Intent is in early design/prototype stage.
+Search Intent is at an early stage: the service runs, but config formats and
+APIs may still change.
 
 The goal is to provide a practical open-source bridge between natural-language search and strict backend API contracts.
 

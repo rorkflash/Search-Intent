@@ -513,7 +513,10 @@ The search-object builder treats three labels differently:
 - `price`: phrases like "under $100" become `filters.price`.
 - `year`: phrases like "from 2012 to 2016" become `filters.year_from` and
   `filters.year_to`.
-- `movie_title`: the first value becomes `filters.q`.
+- `movie_title`: the first value becomes `filters.q`. With a resolver
+  configured for the label it becomes IDs instead, and the text is only used
+  as `q` when nothing resolved at all — so a phrase the extractor mistook for
+  a title ("action movies") cannot override the filters that did resolve.
 
 ---
 
@@ -659,6 +662,35 @@ Example config:
   }
 }
 ```
+
+A search endpoint used as a resolver is usually fuzzy: asking a movie
+catalog for "Harry Potter" can also return films whose director or actor
+matched. An optional `match` block keeps only the rows that really carry the
+name that was asked for. Point `result_path` at the rows rather than at their
+IDs when you use it:
+
+```json
+{
+  "movie_title": {
+    "type": "http",
+    "target": "movie_ids",
+    "url_from_env": "TARGET_MOVIE_RESOLVER_URL",
+    "query": { "q": "{{ value }}", "status": "1", "limit": "20" },
+    "result_path": "$.data[*]",
+    "match": { "field": "title", "mode": "contains", "id_field": "id", "limit": 10 }
+  }
+}
+```
+
+- **`field`** is the row field holding the name, **`id_field`** (default `id`)
+  the one holding the ID.
+- **`mode`** is `exact`, `contains` (either side may contain the other, which
+  is what titles need: "Harry Potter" is five films, and a query may also
+  spell out more of a title than the catalog stores) or `prefix`.
+- **`limit`** caps how many IDs one value resolves to.
+- Comparison ignores case, accents and punctuation.
+
+Without a `match` block, `result_path` selects the IDs themselves.
 
 Resolved IDs are cached for the `resolved_entity` TTL in `cache.json`.
 
@@ -889,7 +921,7 @@ locally:
 | `SEARCH_INTENT_CONFIG_DIR` | The collection to load (default `./config/default`) |
 | `SEARCH_INTENT_JWT_SECRET`, `_ISSUER`, `_AUDIENCE` | Inbound JWT check, when `auth-inbound.json` enables it |
 | `TARGET_API_BASE_URL`, `TARGET_API_TOKEN`, `TARGET_API_KEY` | Target API settings, read through the `*_from_env` names in `api-map.json` |
-| `TARGET_BRAND_RESOLVER_URL`, `TARGET_CATEGORY_RESOLVER_URL` | HTTP resolver URLs, read through `url_from_env` in `resolver-map.json` |
+| `TARGET_BRAND_RESOLVER_URL`, `TARGET_CATEGORY_RESOLVER_URL`, `TARGET_MOVIE_RESOLVER_URL` | HTTP resolver URLs, read through `url_from_env` in `resolver-map.json` |
 | `REDIS_URL` | Redis connection, when `cache.json` selects the `redis` backend |
 | `MODEL_CACHE_DIR` | Where models are stored (default `./models`) |
 | `GLINER2_MODEL` | GLiNER model for collections whose `extractor.json` names none |

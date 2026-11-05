@@ -21,6 +21,7 @@
           "city_id": "{{ search_object.filters.city_ids.first }}",
           "genre_id": "{{ search_object.filters.genre_ids.first }}",
           "genres": "{{ search_object.filters.genre_ids }}",
+          "movie_ids": "{{ search_object.filters.movie_ids }}",
           "place_type": "{{ search_object.filters.place_type_ids.first }}",
           "year_from": "{{ search_object.filters.year_from }}",
           "year_to": "{{ search_object.filters.year_to }}",

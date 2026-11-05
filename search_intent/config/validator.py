@@ -6,6 +6,8 @@ than letting them surface as opaque errors deep in the pipeline.
 
 from __future__ import annotations
 
+import os
+
 from .loader import ProjectConfig
 
 
@@ -42,6 +44,19 @@ def validate_config(config: ProjectConfig) -> list[str]:
                 warnings.append(
                     f"intent '{intent_name}' references unknown object '{obj}'"
                 )
+
+    # An http resolver with no URL silently resolves everything to nothing,
+    # which looks like a bad model rather than a missing env var.
+    for entity, spec in config.resolver_map.get("resolvers", {}).items():
+        if spec.get("type") != "http":
+            continue
+        env_name = spec.get("url_from_env")
+        if spec.get("url") or (env_name and os.environ.get(env_name)):
+            continue
+        warnings.append(
+            f"resolver '{entity}' is http but has no URL"
+            + (f": {env_name} is not set" if env_name else " (no 'url' or 'url_from_env')")
+        )
 
     endpoints = set(config.api_map.get("endpoints", {}))
     for intent_name, endpoint in config.api_map.get("intent_endpoint_map", {}).items():

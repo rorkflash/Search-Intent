@@ -527,6 +527,25 @@
         "worcester": 704,
         "yerevan": 275
       }
+    },
+    "movie_title": {
+      "type": "http",
+      "target": "movie_ids",
+      "note": "Turns a title into movie IDs so title queries filter by movie instead of free-texting the name at an endpoint that only matches place names. /v1/movies?q= also matches director and actor, so 'match' keeps only the rows whose title is really the title that was asked for: one title can be a whole series ('Harry Potter' -> 5 films), while a phrase the extractor mistook for a title ('action movies') resolves to nothing and leaves the other filters alone.",
+      "url_from_env": "TARGET_MOVIE_RESOLVER_URL",
+      "query": {
+        "q": "{{ value }}",
+        "status": "1",
+        "limit": "20"
+      },
+      "result_path": "$.data[*]",
+      "match": {
+        "field": "title",
+        "mode": "contains",
+        "id_field": "id",
+        "limit": 10
+      },
+      "cache_ttl_seconds": 86400
     }
   }
 }

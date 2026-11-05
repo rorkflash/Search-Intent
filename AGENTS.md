@@ -98,7 +98,10 @@ collection.
   - `price`: phrases like "under $100" become `filters.price = {min, max}`.
   - `year`: phrases like "from 2012 to 2016" become `filters.year_from` and
     `filters.year_to`.
-  - `movie_title`: its first value becomes `filters.q`.
+  - `movie_title`: its first value becomes `filters.q`, unless a resolver maps
+    the label to IDs. Then the text is only used as `q` when nothing resolved
+    at all, so a phrase the extractor mistook for a title cannot override the
+    filters that did resolve.
 
   Any other label becomes `filters[<label>] = [values]`, unless a resolver
   maps it to IDs. When nothing at all is extracted, `filters.q` is set to the
@@ -148,7 +151,10 @@ collection.
   a list of IDs. Values not in `map` are dropped.
 - **`http`:** calls a URL read from an env var (`url_from_env`) and picks the
   IDs with the JSONPath in `result_path`. Never put the URL or a token in
-  JSON.
+  JSON. A `match` block (`field`, `mode`, `id_field`, `limit`) makes
+  `result_path` select rows instead and keeps only those whose `field` is the
+  name that was asked for — needed when the endpoint is a fuzzy search rather
+  than a resolver. See the README's `resolver-map.json` section.
 
 ### `api-map.json`: the request to send
 

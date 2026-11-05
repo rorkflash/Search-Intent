@@ -353,3 +353,67 @@ def test_generate_ignores_user_location_when_the_query_names_a_city(
     body = resp.json()
     assert body["search_object"]["geo"] is None
     assert body["api_request"]["body"]["filters"] == {"city_id": 359}
+
+
+def _stub_movie_resolver(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, ids: dict[str, list[int]]
+) -> None:
+    """Answer the movie_title resolver from a dict instead of over HTTP.
+
+    The real resolver calls mt-backend-data's /v1/movies, which these tests
+    must not depend on; what matters here is what the pipeline does with the
+    IDs it gets back.
+    """
+    resolver = client.app.state.pipeline.resolvers["movie_title"]
+
+    async def resolve(value: str) -> list[int]:
+        return ids.get(value.lower(), [])
+
+    monkeypatch.setattr(resolver, "resolve", resolve)
+
+
+def test_movietrip_resolves_movie_titles_to_ids(
+    movietrip_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _stub_movie_resolver(movietrip_client, monkeypatch, {"harry potter": [344, 345]})
+    resp = movietrip_client.post(
+        "/v1/generate",
+        json={"query": "Harry Potter places in London", "limit": 3},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["search_object"]["resolved"]["movie_ids"] == [344, 345]
+    filters = body["api_request"]["body"]["filters"]
+    assert filters["movie_ids"] == [344, 345]
+    assert filters["city_id"] == 536
+    # The title is a movie filter now, so it must not also be matched as text
+    # against place names — that is what used to return nothing.
+    assert "q" not in body["api_request"]["body"]
+
+
+def test_movietrip_unresolvable_title_still_searches_as_text(
+    movietrip_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _stub_movie_resolver(movietrip_client, monkeypatch, {})
+    resp = movietrip_client.post(
+        "/v1/generate",
+        json={"query": "the scenes of 'Inferno' movie", "limit": 1},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "movie_ids" not in body["search_object"]["resolved"]
+    assert body["api_request"]["body"]["q"] == "Inferno"
+
+
+def test_movietrip_unresolvable_title_does_not_override_other_filters(
+    movietrip_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # "action movies" is a phrase the extractor can read as a title. With the
+    # genre resolved, sending it as free text would cut 98 action movies down
+    # to the handful whose text happens to match.
+    _stub_movie_resolver(movietrip_client, monkeypatch, {})
+    resp = movietrip_client.post("/v1/generate", json={"query": "action movies", "limit": 5})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["api_request"]["body"]["filters"]["genre_id"] == 1
+    assert "q" not in body["api_request"]["body"]

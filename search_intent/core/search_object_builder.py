@@ -122,9 +122,15 @@ class SearchObjectBuilder:
         # only when nothing structured was extracted (so year/city/genre-only
         # queries do not pollute q with leftover English filler).
         if "movie_title" in filters and filters["movie_title"]:
+            # No resolver for the label, so its text is all we have.
             filters["q"] = filters["movie_title"][0]
         elif not filters:
-            filters["q"] = query
+            # Nothing resolved. A title the resolver could not place is still
+            # better free text than the whole sentence; with structured
+            # filters present it is dropped instead, so a phrase the extractor
+            # mistook for a title cannot override them.
+            title = next(iter(entities.get("movie_title", [])), None)
+            filters["q"] = title or query
 
         return SearchObject(
             query=query,

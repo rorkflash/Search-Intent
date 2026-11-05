@@ -1375,6 +1375,15 @@ uv run --extra dev ruff check .
 
 ---
 
+## Acknowledgments
+
+- [GLiNER2](https://github.com/fastino-ai/GLiNER2) (Apache-2.0) powers the
+  `gliner2` extractor. See the model cards for
+  [gliner2-base-v1](https://huggingface.co/fastino/gliner2-base-v1) and
+  [gliner2.5-base-v1](https://huggingface.co/fastino/gliner2.5-base-v1).
+
+---
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

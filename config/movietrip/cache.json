@@ -6,7 +6,7 @@
     "namespace": "search-intent-movietrip",
     "project_version": {
       "strategy": "static",
-      "value": "v2"
+      "value": "v3"
     },
     "keys": {
       "search_object": {

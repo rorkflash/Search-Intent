@@ -352,7 +352,10 @@ def test_generate_ignores_user_location_when_the_query_names_a_city(
     assert resp.status_code == 200
     body = resp.json()
     assert body["search_object"]["geo"] is None
-    assert body["api_request"]["body"]["filters"] == {"city_id": 359}
+    assert body["api_request"]["body"]["filters"] == {
+        "city_id": 359,
+        "scene_city_id": 359,
+    }
 
 
 def _stub_movie_resolver(
@@ -386,6 +389,7 @@ def test_movietrip_resolves_movie_titles_to_ids(
     filters = body["api_request"]["body"]["filters"]
     assert filters["movie_ids"] == [344, 345]
     assert filters["city_id"] == 536
+    assert filters["scene_city_id"] == 536
     # The title is a movie filter now, so it must not also be matched as text
     # against place names — that is what used to return nothing.
     assert "q" not in body["api_request"]["body"]
